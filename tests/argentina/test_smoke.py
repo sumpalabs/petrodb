@@ -10,6 +10,8 @@ from pathlib import Path
 import duckdb
 import pytest
 
+from scripts.explore.argentina import eda_plotter
+from scripts.explore.argentina import orchestrator as explore_orch
 from scripts.export.argentina import orchestrator as export_orch
 from scripts.export.argentina import validator
 from scripts.transform.argentina import orchestrator as transform_orch
@@ -52,3 +54,53 @@ def test_export_aborts_when_validator_fails(
         export_orch.run(db_path=db_path, output_dir=out_dir)
 
     assert not (out_dir / "wells.parquet").exists()
+
+
+def test_explore_phase_writes_all_outputs(tmp_path: Path) -> None:
+    """Explore orchestrator runs end-to-end against the fixture and emits
+    every documented output (machine-readable Parquets, 12 PNGs, FINDINGS.md).
+
+    The fixture is too small to reproduce the headline volatility numbers
+    from CONTEXT.md — this test only exercises the wiring."""
+    db_path = tmp_path / "argentina.duckdb"
+    output_dir = tmp_path / "explore_out"
+
+    explore_orch.run(db_path=db_path, csv_dir=FIXTURES, output_dir=output_dir)
+
+    expected_tabular = (
+        "volatility_report.parquet",
+        "master_coverage.parquet",
+        "master_field_agreement.parquet",
+        "production_only_wells.parquet",
+        "capitulo_iv_only_orphans.parquet",
+        "gap_audit.parquet",
+    )
+    for name in expected_tabular:
+        assert (output_dir / name).exists(), f"{name} was not written"
+
+    for png in eda_plotter.PLOTS:
+        path = output_dir / png
+        assert path.exists(), f"{png} was not written"
+        assert path.stat().st_size > 0, f"{png} is empty"
+    assert len(eda_plotter.PLOTS) == 12
+
+    findings = output_dir / "FINDINGS.md"
+    assert findings.exists()
+    body = findings.read_text()
+    assert "Volatility scan" in body
+    assert "Master reconciliation" in body
+    assert "Gap audit" in body
+
+
+def test_explore_phase_is_idempotent(tmp_path: Path) -> None:
+    """Re-running the explore phase overwrites prior outputs deterministically."""
+    db_path = tmp_path / "argentina.duckdb"
+    output_dir = tmp_path / "explore_out"
+
+    explore_orch.run(db_path=db_path, csv_dir=FIXTURES, output_dir=output_dir)
+    first_findings = (output_dir / "FINDINGS.md").read_text()
+
+    explore_orch.run(db_path=db_path, csv_dir=FIXTURES, output_dir=output_dir)
+    second_findings = (output_dir / "FINDINGS.md").read_text()
+
+    assert first_findings == second_findings
