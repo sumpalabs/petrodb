@@ -1,7 +1,9 @@
 """Argentina export-phase orchestrator.
 
 Validates the intermediate DB unconditionally, then writes the published
-Parquets. For this slice only `wells.parquet` is emitted.
+Parquets. `wells.parquet` and `well_operator_history.parquet` are
+emitted; later issues add `well_events.parquet` and the
+hive-partitioned `monthly_production` tree.
 """
 
 from pathlib import Path
@@ -18,3 +20,4 @@ def run(db_path: Path, output_dir: Path) -> None:
     with duckdb.connect(str(db_path), read_only=True) as con:
         validator.validate(con)
         parquet_writer.write_wells(con, output_dir)
+        parquet_writer.write_operator_history(con, output_dir)

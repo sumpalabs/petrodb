@@ -71,6 +71,36 @@ def test_pipeline_emits_wells_parquet(tmp_path: Path) -> None:
     }
     assert not (cols & forbidden)
 
+    # well_operator_history.parquet — fixture has 1002 transitioning
+    # Z001 (2006) → APEA (2007); other producing wells have a single run.
+    op_parquet = out_dir / "well_operator_history.parquet"
+    assert op_parquet.exists(), "well_operator_history.parquet was not written"
+    intervals_per_well = dict(
+        con.execute(
+            f"""
+            SELECT idpozo, COUNT(*)
+            FROM read_parquet('{op_parquet}')
+            GROUP BY idpozo
+            ORDER BY idpozo
+            """
+        ).fetchall()
+    )
+    assert intervals_per_well == {1001: 1, 1002: 2, 1003: 1, 1005: 1, 1006: 1}
+
+    # 1002's two intervals must carry the expected idempresa codes.
+    well_1002_codes = [
+        row[0]
+        for row in con.execute(
+            f"""
+            SELECT idempresa
+            FROM read_parquet('{op_parquet}')
+            WHERE idpozo = 1002
+            ORDER BY valid_from
+            """
+        ).fetchall()
+    ]
+    assert well_1002_codes == ["Z001", "APEA"]
+
 
 def test_export_aborts_when_validator_fails(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
