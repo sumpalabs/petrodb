@@ -19,14 +19,58 @@ from scripts.transform.argentina import orchestrator as transform_orch
 FIXTURES = Path(__file__).parent.parent / "fixtures" / "argentina"
 
 
+_STUB_README = """\
+# PetroData Repository
+
+## Datasets
+
+### Volve Production Data
+Volve placeholder.
+
+### FORCE 2020 Well Logs
+FORCE placeholder.
+
+## Access Data
+
+placeholder
+"""
+
+_STUB_INDEX = """\
+<!DOCTYPE html>
+<html><body>
+    <div class="container">
+        <div class="tab-navigation">
+            <button class="tab-button active" data-tab="volve">Volve</button>
+            <button class="tab-button" data-tab="force2020">Force 2020</button>
+        </div>
+
+        <!-- Volve Tab Content -->
+        <div id="volve-tab" class="tab-content active">v</div>
+
+        <!-- Force 2020 Tab Content -->
+        <div id="force2020-tab" class="tab-content">f</div>
+
+        <footer>footer</footer>
+    </div>
+</body></html>
+"""
+
+
 def test_pipeline_emits_wells_parquet(tmp_path: Path) -> None:
     """Fixture has 4 capitulo-iv wells (one orphan) + 2 production-only.
     All six are emitted in wells.parquet."""
     db_path = tmp_path / "argentina.duckdb"
     out_dir = tmp_path / "parquet"
 
+    # Stub website tree so the export's website_integrator step has
+    # something to patch end-to-end.
+    site_root = tmp_path / "site"
+    (site_root / "parquet").mkdir(parents=True)
+    (site_root / "README.md").write_text(_STUB_README)
+    (site_root / "parquet" / "index.html").write_text(_STUB_INDEX)
+
     transform_orch.run(db_path=db_path, csv_dir=FIXTURES)
-    export_orch.run(db_path=db_path, output_dir=out_dir)
+    export_orch.run(db_path=db_path, output_dir=out_dir, website_root=site_root)
 
     wells_parquet = out_dir / "wells.parquet"
     assert wells_parquet.exists(), "wells.parquet was not written"
@@ -236,6 +280,18 @@ def test_pipeline_emits_wells_parquet(tmp_path: Path) -> None:
     assert "tef" in schema_md and "vida_util" in schema_md
     readme = (out_dir / "README.md").read_text()
     assert "generate_series" in readme and "_files.json" in readme
+
+    # Website integration — the static site must surface the dataset.
+    site_readme = (site_root / "README.md").read_text()
+    assert "### Argentina Production Data" in site_readme
+    assert "import duckdb" in site_readme
+    site_index = (site_root / "parquet" / "index.html").read_text()
+    assert 'data-tab="argentina"' in site_index
+    assert 'id="argentina-tab"' in site_index
+    for artifact in ("schema.md", "schema.json", "schema.sql", "README.md"):
+        assert f'"argentina/{artifact}"' in site_index, (
+            f"index.html missing link to argentina/{artifact}"
+        )
 
 
 def test_export_aborts_when_validator_fails(
