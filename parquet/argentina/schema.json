@@ -1,0 +1,453 @@
+{
+  "dataset": "argentina",
+  "description": "Producción de pozos de gas y petróleo de Argentina (2006–presente).",
+  "tables": {
+    "wells": {
+      "description": "Tabla maestra estática de pozos. Una fila por `idpozo` (~85.418 pozos, incluidos ~113 huérfanos en `capitulo-iv` marcados con `has_production = false`).",
+      "columns": [
+        {
+          "name": "idpozo",
+          "type": "BIGINT",
+          "not_null": true,
+          "primary_key": true
+        },
+        {
+          "name": "sigla",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "formprod",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "codigopropio",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "nombrepropio",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "area",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "cod_area",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "yacimiento",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "cod_yacimiento",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "cuenca",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "provincia",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "idcuenca",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "idprovincia",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "formacion",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "cota",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "profundidad",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "clasificacion",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "subclasificacion",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "tipo_recurso",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "sub_tipo_recurso",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "gasplus",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "proyecto",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "empresa",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "coordenadax",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "coordenaday",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "geom",
+          "type": "BLOB",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "adjiv_fecha_inicio_perf",
+          "type": "DATE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "adjiv_fecha_fin_perf",
+          "type": "DATE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "adjiv_fecha_inicio_term",
+          "type": "DATE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "adjiv_fecha_fin_term",
+          "type": "DATE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "adjiv_fecha_inicio",
+          "type": "DATE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "adjiv_fecha_fin",
+          "type": "DATE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "adjiv_fecha_abandono",
+          "type": "DATE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "adjiv_equipo_utilizar",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "adjiv_capacidad_perf",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "pet_inicial",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "gas_inicial",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "agua_inicial",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "iny_agua_inicial",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "iny_gas_inicial",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "iny_otros_inicial",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "iny_co2_inicial",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "vida_util_inicial",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "has_production",
+          "type": "BOOLEAN",
+          "not_null": false,
+          "primary_key": false
+        }
+      ],
+      "primary_key": [
+        "idpozo"
+      ],
+      "foreign_keys": []
+    },
+    "well_operator_history": {
+      "description": "Histórico de operadores por pozo (slowly-changing dimension). Una fila por corrida contigua de `idempresa` por `idpozo`. Las corridas con `idempresa` NULL se preservan tal cual: la ausencia de operador es información de la fuente.",
+      "columns": [
+        {
+          "name": "idpozo",
+          "type": "BIGINT",
+          "not_null": true,
+          "primary_key": true
+        },
+        {
+          "name": "idempresa",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "empresa",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "valid_from",
+          "type": "DATE",
+          "not_null": true,
+          "primary_key": true
+        },
+        {
+          "name": "valid_to",
+          "type": "DATE",
+          "not_null": false,
+          "primary_key": false
+        }
+      ],
+      "primary_key": [
+        "idpozo",
+        "valid_from"
+      ],
+      "foreign_keys": [
+        {
+          "column": "idpozo",
+          "references_table": "wells",
+          "references_column": "idpozo"
+        }
+      ]
+    },
+    "well_events": {
+      "description": "Eventos de estado operacional. Una fila por mes en el que cualquiera de `(tipoestado, tipoextraccion, tipopozo)` cambió. Se incluye la fila inicial de cada pozo como transición a su estado de partida; los flips de un solo mes no se suavizan.",
+      "columns": [
+        {
+          "name": "idpozo",
+          "type": "BIGINT",
+          "not_null": true,
+          "primary_key": true
+        },
+        {
+          "name": "event_date",
+          "type": "DATE",
+          "not_null": true,
+          "primary_key": true
+        },
+        {
+          "name": "tipoestado",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "tipoextraccion",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "tipopozo",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        }
+      ],
+      "primary_key": [
+        "idpozo",
+        "event_date"
+      ],
+      "foreign_keys": [
+        {
+          "column": "idpozo",
+          "references_table": "wells",
+          "references_column": "idpozo"
+        }
+      ]
+    },
+    "monthly_production": {
+      "description": "Serie mensual de medidas numéricas. Una fila por `(idpozo, fecha)` para cada mes en `[primera_fila, última_fila]` por pozo (los huecos se rellenan con medidas NULL). Particionada por `anio` vía Hive (`monthly_production/anio=YYYY/data.parquet`) y ordenada internamente por `(idpozo, fecha)` para que las estadísticas de row-group permitan podar consultas single-well sobre `httpfs`.",
+      "columns": [
+        {
+          "name": "idpozo",
+          "type": "BIGINT",
+          "not_null": true,
+          "primary_key": true
+        },
+        {
+          "name": "fecha",
+          "type": "DATE",
+          "not_null": true,
+          "primary_key": true
+        },
+        {
+          "name": "prod_pet",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "prod_gas",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "prod_agua",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "iny_agua",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "iny_gas",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "iny_co2",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "iny_otro",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "tef",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "vida_util",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false
+        }
+      ],
+      "primary_key": [
+        "idpozo",
+        "fecha"
+      ],
+      "foreign_keys": [
+        {
+          "column": "idpozo",
+          "references_table": "wells",
+          "references_column": "idpozo"
+        }
+      ]
+    }
+  }
+}
