@@ -5,7 +5,8 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "duckdb>=1.4.3",
+    "contextily>=1.6.2",
+    "duckdb>=1.5.2",
     "marimo[recommended]>=0.19.7",
     "matplotlib>=3.10.8",
     "openpyxl>=3.1.5",
