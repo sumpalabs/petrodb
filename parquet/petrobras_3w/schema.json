@@ -14,43 +14,475 @@
           "name": "event_class",
           "type": "INTEGER",
           "not_null": true,
-          "primary_key": true
+          "primary_key": true,
+          "hive_partition": false
         },
         {
           "name": "name",
           "type": "VARCHAR",
           "not_null": false,
-          "primary_key": false
+          "primary_key": false,
+          "hive_partition": false
         },
         {
           "name": "description",
           "type": "VARCHAR",
           "not_null": false,
-          "primary_key": false
+          "primary_key": false,
+          "hive_partition": false
         },
         {
           "name": "has_transient",
           "type": "BOOLEAN",
           "not_null": false,
-          "primary_key": false
+          "primary_key": false,
+          "hive_partition": false
         },
         {
           "name": "transient_code",
           "type": "INTEGER",
           "not_null": false,
-          "primary_key": false
+          "primary_key": false,
+          "hive_partition": false
         },
         {
           "name": "has_normal_prefix",
           "type": "BOOLEAN",
           "not_null": false,
-          "primary_key": false
+          "primary_key": false,
+          "hive_partition": false
         }
       ],
       "primary_key": [
         "event_class"
       ],
       "foreign_keys": []
+    },
+    "wells": {
+      "description": "Real-Well master, one row per distinct `well_id` derived from Instances with `well_kind = 'real'` (40 rows at the current upstream pin). Upstream anonymises every physical-well attribute (no basin, field, depth, or location), so the master is an identity-plus-statistics table: count of Instances, total 1-Hz Observations, and the time span across which the Well appears in the corpus. Simulated and drawn Instances have NULL `well_id` and contribute nothing here.",
+      "columns": [
+        {
+          "name": "well_id",
+          "type": "INTEGER",
+          "not_null": true,
+          "primary_key": true,
+          "hive_partition": false
+        },
+        {
+          "name": "n_instances",
+          "type": "BIGINT",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "first_ts",
+          "type": "TIMESTAMP",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "last_ts",
+          "type": "TIMESTAMP",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "n_observations",
+          "type": "BIGINT",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        }
+      ],
+      "primary_key": [
+        "well_id"
+      ],
+      "foreign_keys": []
+    },
+    "instances": {
+      "description": "One row per upstream Instance file (~2,228 rows). Identifies the Instance (`instance_id`), its provenance (`well_kind`, `well_id`, `source_file`), the operational regime it is framed around (`event_class`), and pre-aggregated per-Instance statistics (`start_ts`, `end_ts`, `duration_s`, `n_rows`, plus four `n_rows_*` counts that partition `n_rows` by `class` value). Corpus-wide balance and labelled-mass queries can run purely against this catalog without scanning the Observations time-series. `source_url` points at the published Observations file for the Instance (the URL pattern is fixed by ADR-0001).",
+      "columns": [
+        {
+          "name": "instance_id",
+          "type": "VARCHAR",
+          "not_null": true,
+          "primary_key": true,
+          "hive_partition": false
+        },
+        {
+          "name": "well_kind",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "well_id",
+          "type": "INTEGER",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "event_class",
+          "type": "INTEGER",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "start_ts",
+          "type": "TIMESTAMP",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "end_ts",
+          "type": "TIMESTAMP",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "duration_s",
+          "type": "BIGINT",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "n_rows",
+          "type": "BIGINT",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "n_rows_warmup_null",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "n_rows_normal",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "n_rows_transient",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "n_rows_steady",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "source_file",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "source_url",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        }
+      ],
+      "primary_key": [
+        "instance_id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "event_class",
+          "references_table": "event_types",
+          "references_column": "event_class"
+        },
+        {
+          "column": "well_id",
+          "references_table": "wells",
+          "references_column": "well_id"
+        }
+      ]
+    },
+    "observations": {
+      "description": "Per-Instance 1-Hz sensor time-series. Hive-partitioned by `event_class` into `observations/event_class=N/<instance_id>.parquet` — one file per Instance, ~2,228 files in total. Each file preserves the upstream sensor columns verbatim (including hyphens: `P-PDG`, `ABER-CKGL`, `ESTADO-SDV-GL`, …), plus `class`, `state`, and `timestamp`. Three constant columns identify provenance per row: `instance_id`, `well_id`, `well_kind` (RLE-encoded, negligible storage). `event_class` is provided by the hive partition and is NOT stored in the file body. A `_files.json` manifest at the partition root lists every published file's relative path for consumers that prefer enumeration over wildcards.",
+      "columns": [
+        {
+          "name": "event_class",
+          "type": "INTEGER",
+          "not_null": true,
+          "primary_key": false,
+          "hive_partition": true
+        },
+        {
+          "name": "timestamp",
+          "type": "TIMESTAMP",
+          "not_null": true,
+          "primary_key": true,
+          "hive_partition": false
+        },
+        {
+          "name": "class",
+          "type": "INTEGER",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "state",
+          "type": "INTEGER",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "ABER-CKGL",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "ABER-CKP",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "ESTADO-DHSV",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "ESTADO-M1",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "ESTADO-M2",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "ESTADO-PXO",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "ESTADO-SDV-GL",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "ESTADO-SDV-P",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "ESTADO-W1",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "ESTADO-W2",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "ESTADO-XO",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "P-ANULAR",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "P-JUS-BS",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "P-JUS-CKGL",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "P-JUS-CKP",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "P-MON-CKGL",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "P-MON-CKP",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "P-MON-SDV-P",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "P-PDG",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "PT-P",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "P-TPT",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "QBS",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "QGL",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "T-JUS-CKP",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "T-MON-CKP",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "T-PDG",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "T-TPT",
+          "type": "DOUBLE",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "instance_id",
+          "type": "VARCHAR",
+          "not_null": true,
+          "primary_key": true,
+          "hive_partition": false
+        },
+        {
+          "name": "well_id",
+          "type": "INTEGER",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        },
+        {
+          "name": "well_kind",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false,
+          "hive_partition": false
+        }
+      ],
+      "primary_key": [
+        "instance_id",
+        "timestamp"
+      ],
+      "foreign_keys": [
+        {
+          "column": "instance_id",
+          "references_table": "instances",
+          "references_column": "instance_id"
+        },
+        {
+          "column": "event_class",
+          "references_table": "event_types",
+          "references_column": "event_class"
+        },
+        {
+          "column": "well_id",
+          "references_table": "wells",
+          "references_column": "well_id"
+        }
+      ]
     }
   }
 }

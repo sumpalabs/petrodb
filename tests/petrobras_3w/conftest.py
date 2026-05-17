@@ -42,6 +42,8 @@ from pathlib import Path
 
 import duckdb
 
+from scripts.transform.petrobras_3w.upstream_stager import parse_dataset_ini
+
 
 @dataclass(frozen=True)
 class _InstanceSpec:
@@ -123,6 +125,19 @@ def _padding_specs() -> tuple[_InstanceSpec, ...]:
 _INSTANCE_SPECS: tuple[_InstanceSpec, ...] = _PRIMARY_SPECS + _padding_specs()
 
 
+def _sensor_columns(staging_dir: Path) -> tuple[str, ...]:
+    """Return upstream's sensor columns in `PARQUET_FILE_PROPERTIES` order,
+    excluding the ones the fixture writes explicitly (`timestamp`, `class`,
+    `state`).
+    """
+    ini = parse_dataset_ini(staging_dir)
+    return tuple(
+        column
+        for column in ini.sensor_descriptions
+        if column not in {"timestamp", "class", "state"}
+    )
+
+
 def build_instance_parquets(staging_dir: Path) -> None:
     """Write the minimal per-Instance parquet fixtures under `<staging>/dataset/N/`.
 
@@ -130,11 +145,17 @@ def build_instance_parquets(staging_dir: Path) -> None:
     DuckDB so the fixture format matches what `read_parquet` will see in
     the pipeline (timestamp column written as a TIMESTAMP).
 
-    The fixture carries a hyphenated sensor column (`P-PDG`) so the
-    Observations writer's column-name fidelity policy is exercised in
-    the smoke test.
+    Carries all 27 upstream sensor columns from `dataset.ini`'s
+    `PARQUET_FILE_PROPERTIES`, so the reflected schema docs published from
+    a fixture-driven run match production's column inventory. Most sensor
+    values are constant placeholders; only `P-PDG` varies so the
+    column-name fidelity policy and parity sensor-aggregate checks have
+    distinguishable data to compare across upstream → catalog → published.
     """
     dataset_root = Path(staging_dir) / "dataset"
+    sensor_cols = _sensor_columns(staging_dir)
+    sensor_col_ddl = ",".join(f'    "{name}" DOUBLE' for name in sensor_cols)
+    placeholders = ",".join(["?"] * (3 + len(sensor_cols)))
     con = duckdb.connect()
     try:
         for spec in _INSTANCE_SPECS:
@@ -147,7 +168,7 @@ def build_instance_parquets(staging_dir: Path) -> None:
                 '    "timestamp" TIMESTAMP,'
                 '    "class"     INTEGER,'
                 '    "state"     INTEGER,'
-                '    "P-PDG"     DOUBLE'
+                f"{sensor_col_ddl}"
                 ")"
             )
             rows = [
@@ -155,12 +176,18 @@ def build_instance_parquets(staging_dir: Path) -> None:
                     f"2012-01-01 00:00:{i:02d}",
                     cls,
                     0,
-                    1.0e7 + i,
+                    *(
+                        # `P-PDG` varies row-to-row so sensor aggregates
+                        # diverge under any byte-level mutation in the
+                        # parity tests; other sensors stay constant.
+                        1.0e7 + i if name == "P-PDG" else 0.0
+                        for name in sensor_cols
+                    ),
                 )
                 for i, cls in enumerate(spec.classes)
             ]
             con.executemany(
-                "INSERT INTO staging_rows VALUES (?, ?, ?, ?)",
+                f"INSERT INTO staging_rows VALUES ({placeholders})",
                 rows,
             )
             con.execute(

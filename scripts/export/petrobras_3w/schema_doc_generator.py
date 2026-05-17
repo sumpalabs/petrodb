@@ -476,7 +476,9 @@ def _write_schema_md(
             nullable = "No" if col["not_null"] else "Yes"
             pk = "✓" if col["primary_key"] else ""
             source = "hive partition" if col.get("hive_partition") else "file body"
-            desc = COLUMN_DESCRIPTIONS.get(col["name"], "")
+            desc = COLUMN_DESCRIPTIONS.get(
+                col["name"]
+            ) or dataset_ini.sensor_descriptions.get(col["name"], "")
             lines.append(
                 f"| `{col['name']}` | {col['type']} | {nullable} | {pk} | "
                 f"{source} | {desc} |"
@@ -497,10 +499,9 @@ def _write_schema_md(
     lines.append("")
     lines.append(
         "Mirrored verbatim from upstream `dataset.ini`'s "
-        "`PARQUET_FILE_PROPERTIES` section. These columns will appear in "
-        "`observations/event_class=N/<instance_id>.parquet` once issue "
-        "#22 lands; the glossary is published here so consumers can plan "
-        "queries against the table layout in advance."
+        "`PARQUET_FILE_PROPERTIES` section. These columns appear in every "
+        "`observations/event_class=N/<instance_id>.parquet` file body; the "
+        "glossary is repeated here in a single table for quick reference."
     )
     lines.append("")
     lines.append("| Column | Description |")
@@ -653,6 +654,36 @@ def _write_readme(schemas: dict[str, dict], path: Path) -> None:
     lines.append("         w.first_ts, w.last_ts")
     lines.append("ORDER BY w.n_instances DESC;")
     lines.append("```")
+    lines.append("")
+    lines.append("### Per-Well cross-validation split (leave-one-Well-out)")
+    lines.append("")
+    lines.append(
+        "Training models on Petrobras 3W should split by `well_id`, not by "
+        "Instance — Instances drawn from the same physical Well share "
+        "operating conditions and would leak signal across a naive shuffle. "
+        "Assign each real Well a stable fold index from the `well_id` "
+        "modulo the desired fold count, then derive the test Instances for "
+        "fold `k` directly from `instances.parquet`:"
+    )
+    lines.append("")
+    lines.append("```sql")
+    lines.append("WITH folded AS (")
+    lines.append("    SELECT well_id, well_id % 5 AS fold")
+    lines.append(f"    FROM '{base_url}/wells.parquet'")
+    lines.append(")")
+    lines.append("SELECT i.instance_id, i.event_class, i.n_rows, i.source_url")
+    lines.append(f"FROM '{base_url}/instances.parquet' i")
+    lines.append("JOIN folded f USING (well_id)")
+    lines.append("WHERE f.fold = 0  -- held-out test set; train on fold != 0")
+    lines.append("ORDER BY i.event_class, i.instance_id;")
+    lines.append("```")
+    lines.append("")
+    lines.append(
+        "The simulated and drawn Instances (`well_kind <> 'real'`, "
+        "`well_id IS NULL`) are excluded from the join above and can be "
+        "added to the training set independently — they have no physical "
+        "Well to leak against."
+    )
     lines.append("")
     lines.append("### Load all real-Well Observations of one event class")
     lines.append("")

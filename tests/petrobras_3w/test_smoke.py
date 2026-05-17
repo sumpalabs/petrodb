@@ -295,10 +295,35 @@ def test_pipeline_emits_documentation(tmp_path: Path) -> None:
     ):
         assert f"`{column}`" in schema_md, f"schema.md missing {column}"
 
+    # The glossary intro no longer refers to issue #22 as future work; the
+    # Observations writer landed there. Stale forward-references would
+    # confuse consumers reading the published docs.
+    assert "once issue #22 lands" not in schema_md, (
+        "stale '#22 lands' forward-reference in schema.md"
+    )
+
+    # Sensor column descriptions are inlined in the observations table — not
+    # left blank with the glossary as the only reference.
+    obs_section, _, _ = schema_md.partition("## Sensor-column glossary")
+    _, _, observations_block = obs_section.partition("### `observations`")
+    assert "Downhole pressure at the PDG" in observations_block, (
+        "observations P-PDG row should inline upstream's sensor description"
+    )
+
     # README records the pinned git tag + dataset version.
     readme = (out_dir / "README.md").read_text()
     assert PIN_GIT_TAG in readme
     assert PIN_DATASET_VERSION in readme
+
+    # Four canonical query examples from issue #24 acceptance criteria must
+    # be present (a load-by-event-class, b fetch-by-URL, c per-Well CV
+    # split, d corpus-wide balance from catalog only).
+    assert "WHERE event_class = 8" in readme, "missing event-class load query"
+    assert "Fetch one specific Instance" in readme, "missing fetch-by-URL query"
+    assert "leave-one-Well-out" in readme, "missing per-well CV split query"
+    assert "Corpus balance from the Instance catalog" in readme, (
+        "missing corpus-balance catalog-only query"
+    )
 
     # LICENSE-3W-DATA.md attributes CC BY 4.0 with upstream attribution.
     license_text = (out_dir / "LICENSE-3W-DATA.md").read_text()
@@ -1379,10 +1404,11 @@ def test_parity_detects_per_instance_only_drift(tmp_path: Path) -> None:
         target_gain,
         # Append a synthetic second row 1 second later so the partition-
         # level total stays the same but this Instance now has 2 rows
-        # instead of 1.
-        "INSERT INTO staged SELECT "
-        '"timestamp" + INTERVAL \'1 second\', class, state, "P-PDG", '
-        "instance_id, well_id, well_kind FROM staged",
+        # instead of 1. `SELECT *` over the table re-uses the full column
+        # set unchanged; the column-list-by-name approach would have to be
+        # kept in lockstep with the fixture's sensor inventory.
+        'INSERT INTO staged BY NAME SELECT * REPLACE ("timestamp" + '
+        "INTERVAL '1 second' AS \"timestamp\") FROM staged",
     )
 
     with pytest.raises(parity.ParityRowCountPerInstanceError):

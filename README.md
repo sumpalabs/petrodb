@@ -58,21 +58,28 @@ four-bucket rationale, and three more canonical query patterns live in
 ### Petrobras 3W Dataset
 Labelled 1-Hz sensor-data windows from the Petrobras 3W dataset, sliced
 into per-Instance Parquet files. Pinned at upstream git tag `v.1.70.0`
-(dataset version `2.0.0`). This initial release publishes
-the event-class lookup and documentation scaffolding; the Instance catalog,
-real-Well master, and Observations time-series ship in follow-up issues.
+(dataset version `2.0.0`). This release publishes the
+event-class lookup, the real-Well master, the full Instance catalog, and
+the per-Instance Observations time-series (hive-partitioned by event class).
 
-List every event class (NORMAL plus the nine anomaly categories) with their
-TRANSIENT-arc semantics:
+Measure the labelled-data balance across the corpus from the catalog alone
+(no Observations scan needed):
 
 ```python
 import duckdb
 
-result = duckdb.sql("""
-    SELECT event_class, name, description,
-           has_transient, transient_code
-    FROM 'https://dev-petrodb.ocortez.com/petrobras_3w/event_types.parquet'
-    ORDER BY event_class
+base = 'https://dev-petrodb.ocortez.com/petrobras_3w'
+result = duckdb.sql(f"""
+    SELECT
+        et.event_class,
+        et.description,
+        COUNT(*)             AS n_instances,
+        SUM(i.n_rows)        AS n_observations
+    FROM '{base}/instances.parquet' i
+    JOIN '{base}/event_types.parquet' et
+        ON et.event_class = i.event_class
+    GROUP BY et.event_class, et.description
+    ORDER BY et.event_class
 """).df()
 ```
 
