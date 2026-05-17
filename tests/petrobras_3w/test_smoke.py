@@ -30,7 +30,7 @@ import duckdb
 import pytest
 
 from scripts.export.petrobras_3w import orchestrator as export_orch
-from scripts.export.petrobras_3w import validator
+from scripts.export.petrobras_3w import parity, validator
 from scripts.transform.petrobras_3w import orchestrator as transform_orch
 from scripts.transform.petrobras_3w.constants import (
     PIN_DATASET_VERSION,
@@ -1270,3 +1270,180 @@ def test_validator_rejects_observations_non_transient_class_zero(
             dataset_ini=dataset_ini,
             staging_dir=staging,
         )
+
+
+# ---------------------------------------------------------------------------
+# Parity check suite vs upstream pinned tag (issue #23)
+# ---------------------------------------------------------------------------
+
+
+def _mutate_published_parquet(target: Path, mutate_sql: str) -> None:
+    """Re-read a published Observations parquet, apply ``mutate_sql``
+    against the ``staged`` temp table, and overwrite the file in place.
+
+    Used to surgically break a single value or row in the published
+    bytes *after* the export pipeline has run, so the parity suite
+    operates against a real divergence rather than a synthetic input.
+    Hive partitioning is disabled on the read so the body columns line
+    up 1:1 with the source on disk.
+    """
+    con = duckdb.connect()
+    try:
+        con.execute(
+            f"CREATE TEMP TABLE staged AS SELECT * FROM "
+            f"read_parquet('{target}', hive_partitioning=false)"
+        )
+        con.execute(mutate_sql)
+        con.execute(f"COPY staged TO '{target}' (FORMAT PARQUET)")
+    finally:
+        con.close()
+
+
+def test_parity_passes_on_happy_path(tmp_path: Path) -> None:
+    """All nine parity checks succeed against the fixture upstream tree.
+
+    Asserts that the smoke-fixture run is end-to-end-consistent across
+    upstream / catalog / published Observations. The pipeline's own
+    success in `_run_pipeline` is *implicitly* this check, but exercising
+    `parity.check` directly here documents the public entry point.
+    """
+    _, out_dir, staging = _run_pipeline(tmp_path)
+    # Re-running parity outside the orchestrator must also succeed.
+    parity.check(staging, out_dir)
+
+
+def test_parity_detects_sensor_value_mutation(tmp_path: Path) -> None:
+    """A single-value edit to a sensor column in a published parquet trips
+    at least one parity check.
+
+    Bumps the `P-PDG` value in one row of one published Observations
+    file. The catalog and upstream stay untouched, so the catalog-side
+    structural checks (row count, FK, timestamps) all match — only the
+    sensor-aggregate checks see the divergence.
+    """
+    _, out_dir, staging = _run_pipeline(tmp_path)
+
+    target = (
+        out_dir / "observations" / "event_class=1" / "WELL-00002_20120102000000.parquet"
+    )
+    _mutate_published_parquet(
+        target,
+        # Bump the first row's `P-PDG` by 1.0 — keeps row count, NULL count,
+        # and class distribution intact; only the SUM/AVG/MIN/MAX trip.
+        'UPDATE staged SET "P-PDG" = "P-PDG" + 1.0 '
+        'WHERE "timestamp" = (SELECT MIN("timestamp") FROM staged)',
+    )
+
+    with pytest.raises(parity.ParitySensorAggregatesError):
+        parity.check(staging, out_dir)
+
+
+def test_parity_detects_row_drop_in_published(tmp_path: Path) -> None:
+    """Dropping a published Observations row trips a row-count parity check
+    (the catalog still says n_rows=12 for that Instance; the published file
+    now has 11 rows). The per-event-class check fires first in the suite
+    order, but the acceptance criterion only requires *some* check to fire.
+    """
+    _, out_dir, staging = _run_pipeline(tmp_path)
+
+    target = (
+        out_dir / "observations" / "event_class=1" / "WELL-00002_20120102000000.parquet"
+    )
+    _mutate_published_parquet(
+        target,
+        'DELETE FROM staged WHERE "timestamp" = (SELECT MAX("timestamp") FROM staged)',
+    )
+
+    with pytest.raises(parity.ParityRowCountPerEventClassError):
+        parity.check(staging, out_dir)
+
+
+def test_parity_detects_per_instance_only_drift(tmp_path: Path) -> None:
+    """Reordering rows across two published files in the same event class
+    keeps the per-event-class row count intact (check 1 passes) but trips
+    the per-instance row count check (check 2). This isolates check 2
+    behind its dedicated exception class so the suite catches partition-
+    internal drift, not just cross-partition mismatches.
+    """
+    _, out_dir, staging = _run_pipeline(tmp_path)
+
+    # Both targets are event_class=0 padding fixtures (1 row each). We
+    # drop one row from `target_lose` and synthesise an extra (duplicate-
+    # timestamp-shifted) row in `target_gain` so the partition's total
+    # row count is unchanged.
+    base = out_dir / "observations" / "event_class=0"
+    target_lose = base / "WELL-00004_20120101000000.parquet"
+    target_gain = base / "WELL-00005_20120101000000.parquet"
+    _mutate_published_parquet(target_lose, "DELETE FROM staged")
+    _mutate_published_parquet(
+        target_gain,
+        # Append a synthetic second row 1 second later so the partition-
+        # level total stays the same but this Instance now has 2 rows
+        # instead of 1.
+        "INSERT INTO staged SELECT "
+        '"timestamp" + INTERVAL \'1 second\', class, state, "P-PDG", '
+        "instance_id, well_id, well_kind FROM staged",
+    )
+
+    with pytest.raises(parity.ParityRowCountPerInstanceError):
+        parity.check(staging, out_dir)
+
+
+def test_parity_detects_class_label_flip(tmp_path: Path) -> None:
+    """Flipping one `class` value in a published file trips the class
+    distribution check (the per-row class is preserved verbatim, so any
+    edit is a parity break).
+    """
+    _, out_dir, staging = _run_pipeline(tmp_path)
+
+    target = (
+        out_dir / "observations" / "event_class=1" / "WELL-00002_20120102000000.parquet"
+    )
+    _mutate_published_parquet(
+        target,
+        # Replace one STEADY row's class (1) with a value that already
+        # exists in the published distribution (101), so the global
+        # multiset changes its histogram without introducing a new value.
+        'UPDATE staged SET "class" = 101 '
+        'WHERE "timestamp" = (SELECT MIN("timestamp") FROM staged WHERE "class" = 1)',
+    )
+
+    with pytest.raises(parity.ParityClassDistributionError):
+        parity.check(staging, out_dir)
+
+
+def test_orchestrator_aborts_publish_on_parity_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A parity divergence raised from `parity.check` propagates out of
+    the orchestrator and skips the website-integration step.
+
+    Patches `parity.check` (as imported into the orchestrator module) so
+    it always raises. The website root is provided, so we can assert
+    the integrator did NOT run by checking the stub README is unchanged.
+    """
+    db_path = tmp_path / "petrobras_3w.duckdb"
+    out_dir = tmp_path / "parquet"
+    staging = _populated_staging(tmp_path)
+    site_root = _site_root(tmp_path)
+    pristine_readme = (site_root / "README.md").read_text()
+
+    def boom(*_args, **_kwargs) -> None:
+        raise parity.ParitySensorAggregatesError("synthetic divergence")
+
+    monkeypatch.setattr(export_orch.parity, "check", boom)
+
+    dataset_ini = transform_orch.run(db_path=db_path, staging_dir=staging)
+    with pytest.raises(parity.ParitySensorAggregatesError):
+        export_orch.run(
+            db_path=db_path,
+            output_dir=out_dir,
+            dataset_ini=dataset_ini,
+            staging_dir=staging,
+            website_root=site_root,
+        )
+
+    # The static site is untouched on a parity abort: the publish never
+    # made it past `parity.check`.
+    assert (site_root / "README.md").read_text() == pristine_readme
+    assert "petrobras_3w" not in (site_root / "parquet" / "index.html").read_text()
