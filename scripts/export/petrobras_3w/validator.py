@@ -35,6 +35,19 @@ added. This slice covers:
   instance filenames (IDs 17 and 18 are absent); the validator pins on
   the observed 40 so upstream version drift surfaces as a hard fail.
 
+`observations` (#22):
+- Every Observations `instance_id` exists in `instances` (rule 2 — FK
+  integrity; the per-Instance file boundaries match upstream's).
+- Within each file: row count equals `instances.n_rows`; `timestamp`
+  is strictly monotonic at exactly 1-second cadence; `class` falls in
+  `{NULL, 0, event_class, transient_code}` (rule 5).
+- For Instances whose `event_class ∈ {3, 4}` (`has_transient = false`):
+  no `class ≥ 100` and no `class = 0` (rule 6).
+
+Rule 9 (Observations file-size soft warning) is emitted by
+`parquet_writer.write_observations`, not here — it operates on the
+written bytes, after `validate(...)` returns.
+
 Also emits the pinned upstream identity (git tag + dataset version) to
 the validation log so consumers reading export output can verify the
 upstream snapshot, per ADR-0002 and issue #19's acceptance criteria.
@@ -114,6 +127,31 @@ class WellsKindError(Exception):
     into the real-Well master."""
 
 
+class ObservationsInstanceFkError(Exception):
+    """An Observations row references an `instance_id` not in `instances`
+    (rule 2)."""
+
+
+class ObservationsRowCountError(Exception):
+    """At least one Instance's Observations row count diverges from
+    `instances.n_rows` (rule 5)."""
+
+
+class ObservationsTimestampError(Exception):
+    """At least one Instance's `timestamp` column is not strictly
+    monotonic at 1-second cadence (rule 5)."""
+
+
+class ObservationsClassDomainError(Exception):
+    """An Observations row carries a `class` value outside
+    `{NULL, 0, event_class, transient_code}` (rule 5)."""
+
+
+class ObservationsNonTransientClassError(Exception):
+    """An Observations row of an event with `has_transient = false`
+    (events 3 or 4) carries `class >= 100` or `class = 0` (rule 6)."""
+
+
 def log_pinned_upstream(
     dataset_ini: DatasetIni, logger: logging.Logger | None = None
 ) -> None:
@@ -155,6 +193,11 @@ def validate(
     _validate_wells_row_count(con)
     _validate_wells_id_fk(con)
     _validate_wells_kind(con)
+    _validate_observations_instance_fk(con)
+    _validate_observations_row_count(con)
+    _validate_observations_timestamp_monotonic(con)
+    _validate_observations_class_domain(con)
+    _validate_observations_non_transient_class(con)
 
 
 def _validate_event_types_row_count(con: duckdb.DuckDBPyConnection) -> None:
@@ -349,4 +392,116 @@ def _validate_wells_id_fk(con: duckdb.DuckDBPyConnection) -> None:
     if orphans:
         raise WellsIdFkError(
             f"instances has {orphans} row(s) whose well_id is not in wells"
+        )
+
+
+def _validate_observations_instance_fk(con: duckdb.DuckDBPyConnection) -> None:
+    """Rule 2: every Observations `instance_id` exists in `instances`."""
+    orphan_ids = con.execute(
+        """
+        SELECT COUNT(*) FROM (
+            SELECT DISTINCT instance_id
+            FROM observations
+            WHERE instance_id NOT IN (SELECT instance_id FROM instances)
+        )
+        """
+    ).fetchone()[0]
+    if orphan_ids:
+        raise ObservationsInstanceFkError(
+            f"observations references {orphan_ids} instance_id(s) not in instances"
+        )
+
+
+def _validate_observations_row_count(con: duckdb.DuckDBPyConnection) -> None:
+    """Rule 5: per-Instance Observations row count equals `instances.n_rows`."""
+    mismatches = con.execute(
+        """
+        SELECT COUNT(*) FROM instances i
+        JOIN (
+            SELECT instance_id, COUNT(*) AS n_obs
+            FROM observations
+            GROUP BY instance_id
+        ) o ON o.instance_id = i.instance_id
+        WHERE o.n_obs <> i.n_rows
+        """
+    ).fetchone()[0]
+    if mismatches:
+        raise ObservationsRowCountError(
+            f"observations row count mismatches instances.n_rows for "
+            f"{mismatches} instance(s)"
+        )
+
+
+def _validate_observations_timestamp_monotonic(con: duckdb.DuckDBPyConnection) -> None:
+    """Rule 5: `timestamp` strictly monotonic at 1-second cadence per instance.
+
+    Catches both duplicates (diff = 0) and gaps (diff > 1). Single-row
+    Instances have no consecutive pairs, so the LAG window naturally
+    skips them.
+    """
+    breaks = con.execute(
+        """
+        WITH lagged AS (
+            SELECT
+                instance_id,
+                "timestamp" AS ts,
+                LAG("timestamp") OVER (
+                    PARTITION BY instance_id ORDER BY "timestamp"
+                ) AS prev_ts
+            FROM observations
+        )
+        SELECT COUNT(*) FROM lagged
+        WHERE prev_ts IS NOT NULL
+          AND date_diff('second', prev_ts, ts) <> 1
+        """
+    ).fetchone()[0]
+    if breaks:
+        raise ObservationsTimestampError(
+            f"observations has {breaks} consecutive-row pair(s) whose timestamp "
+            f"delta is not exactly 1 second (duplicates or gaps)"
+        )
+
+
+def _validate_observations_class_domain(con: duckdb.DuckDBPyConnection) -> None:
+    """Rule 5: per-Instance `class ∈ {NULL, 0, event_class, transient_code}`.
+
+    Joins each observation row to its `instances.event_class` and to
+    `event_types.transient_code` (NULL for non-transient events) and
+    rejects anything outside the resolved domain.
+    """
+    bad = con.execute(
+        """
+        SELECT COUNT(*) FROM observations o
+        JOIN instances i   ON i.instance_id = o.instance_id
+        JOIN event_types et ON et.event_class = i.event_class
+        WHERE o.class IS NOT NULL
+          AND o.class <> 0
+          AND o.class <> i.event_class
+          AND (et.transient_code IS NULL OR o.class <> et.transient_code)
+        """
+    ).fetchone()[0]
+    if bad:
+        raise ObservationsClassDomainError(
+            f"observations has {bad} row(s) whose `class` is outside "
+            f"{{NULL, 0, event_class, transient_code}}"
+        )
+
+
+def _validate_observations_non_transient_class(con: duckdb.DuckDBPyConnection) -> None:
+    """Rule 6: Instances of events 3 or 4 carry no `class >= 100` and no
+    `class = 0`. These events have `has_transient = false` and ship only
+    the steady class — no NORMAL precursor and no transient codes.
+    """
+    bad = con.execute(
+        """
+        SELECT COUNT(*) FROM observations o
+        JOIN instances i ON i.instance_id = o.instance_id
+        WHERE i.event_class IN (3, 4)
+          AND (o.class >= 100 OR o.class = 0)
+        """
+    ).fetchone()[0]
+    if bad:
+        raise ObservationsNonTransientClassError(
+            f"observations has {bad} row(s) of event_class 3/4 with class "
+            f">= 100 or class = 0"
         )

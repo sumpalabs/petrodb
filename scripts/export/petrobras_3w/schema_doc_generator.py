@@ -33,8 +33,7 @@ from scripts.transform.petrobras_3w.constants import (
 )
 from scripts.transform.petrobras_3w.upstream_stager import DatasetIni
 
-# Tables documented in this slice. Later slices append to this tuple.
-TABLE_ORDER = ("event_types", "wells", "instances")
+TABLE_ORDER = ("event_types", "wells", "instances", "observations")
 
 TABLE_DESCRIPTIONS = {
     "event_types": (
@@ -67,16 +66,50 @@ TABLE_DESCRIPTIONS = {
         "`source_url` points at the published Observations file for the "
         "Instance (the URL pattern is fixed by ADR-0001)."
     ),
+    "observations": (
+        "Per-Instance 1-Hz sensor time-series. Hive-partitioned by "
+        "`event_class` into `observations/event_class=N/<instance_id>.parquet` "
+        "— one file per Instance, ~2,228 files in total. Each file preserves "
+        "the upstream sensor columns verbatim (including hyphens: `P-PDG`, "
+        "`ABER-CKGL`, `ESTADO-SDV-GL`, …), plus `class`, `state`, and "
+        "`timestamp`. Three constant columns identify provenance per row: "
+        "`instance_id`, `well_id`, `well_kind` (RLE-encoded, negligible "
+        "storage). `event_class` is provided by the hive partition and is "
+        "NOT stored in the file body. A `_files.json` manifest at the "
+        "partition root lists every published file's relative path for "
+        "consumers that prefer enumeration over wildcards."
+    ),
 }
 
 PRIMARY_KEYS = {
     "event_types": ("event_class",),
     "wells": ("well_id",),
     "instances": ("instance_id",),
+    # Observations PK is logical, not enforceable from a DDL on hive
+    # partitions — `(instance_id, timestamp)` uniquely identifies a row
+    # within the published tree.
+    "observations": ("instance_id", "timestamp"),
 }
 
 FOREIGN_KEYS: dict[str, tuple[dict, ...]] = {
     "instances": (
+        {
+            "column": "event_class",
+            "references_table": "event_types",
+            "references_column": "event_class",
+        },
+        {
+            "column": "well_id",
+            "references_table": "wells",
+            "references_column": "well_id",
+        },
+    ),
+    "observations": (
+        {
+            "column": "instance_id",
+            "references_table": "instances",
+            "references_column": "instance_id",
+        },
         {
             "column": "event_class",
             "references_table": "event_types",
@@ -202,6 +235,24 @@ COLUMN_DESCRIPTIONS = {
         "pattern is fixed by ADR-0001 so it can be materialised here "
         "before the Observations files exist."
     ),
+    # observations
+    "timestamp": (
+        "Wall-clock timestamp of the 1-Hz observation. Strictly monotonic "
+        "within an Instance file at exactly 1-second cadence."
+    ),
+    "class": (
+        "Per-observation regime label: `NULL` during the warmup prefix of "
+        "a real-Well Instance, `0` for the NORMAL precursor before an "
+        "anomaly, `event_class` for the labelled steady regime, or "
+        "`event_class + 100` for the TRANSIENT phase (only on events "
+        "where `event_types.has_transient = true`). Events 3 and 4 ship "
+        "only the steady code — no transient and no NORMAL precursor."
+    ),
+    "state": (
+        "Upstream-provided well operational status. Preserved verbatim "
+        "from the source file; semantics are documented in upstream's "
+        "`dataset.ini`."
+    ),
 }
 
 
@@ -230,27 +281,78 @@ def _reflect_schemas(
 ) -> dict[str, dict]:
     schemas: dict[str, dict] = {}
     for table in TABLE_ORDER:
-        path = output_dir / f"{table}.parquet"
-        described = con.execute(
-            f"DESCRIBE SELECT * FROM read_parquet('{path}')"
-        ).fetchall()
-        pk = PRIMARY_KEYS[table]
-        columns = [
+        if table == "observations":
+            columns = _reflect_observations_columns(con, output_dir)
+        else:
+            path = output_dir / f"{table}.parquet"
+            described = con.execute(
+                f"DESCRIBE SELECT * FROM read_parquet('{path}')"
+            ).fetchall()
+            pk = PRIMARY_KEYS[table]
+            columns = [
+                {
+                    "name": row[0],
+                    "type": row[1],
+                    "not_null": row[0] in pk or row[2] == "NO",
+                    "primary_key": row[0] in pk,
+                    "hive_partition": False,
+                }
+                for row in described
+            ]
+        schemas[table] = {
+            "columns": columns,
+            "primary_key": PRIMARY_KEYS[table],
+            "foreign_keys": FOREIGN_KEYS.get(table, ()),
+            "description": TABLE_DESCRIPTIONS[table],
+        }
+    return schemas
+
+
+def _reflect_observations_columns(
+    con: duckdb.DuckDBPyConnection, output_dir: Path
+) -> list[dict]:
+    """Reflect the Observations file body columns and prepend `event_class`.
+
+    The first file in the manifest is representative — every Observations
+    file is produced from the same writer and carries the same body
+    columns. `event_class` is added explicitly because it lives in the
+    hive partition path, not the file body.
+    """
+    manifest_path = output_dir / "observations" / "_files.json"
+    relative_paths = json.loads(manifest_path.read_text())
+    if not relative_paths:
+        raise ValueError(
+            f"observations manifest at {manifest_path} is empty — no files to "
+            f"reflect schema from"
+        )
+    sample = output_dir / "observations" / relative_paths[0]
+    # `hive_partitioning=false` — `event_class` is the hive partition and
+    # we are reflecting the file body. The auto-detect would otherwise
+    # surface it as a column twice (once here, once prepended below).
+    described = con.execute(
+        f"DESCRIBE SELECT * FROM read_parquet('{sample}', hive_partitioning=false)"
+    ).fetchall()
+    pk = PRIMARY_KEYS["observations"]
+    columns: list[dict] = [
+        {
+            "name": "event_class",
+            "type": "INTEGER",
+            "not_null": True,
+            "primary_key": False,
+            "hive_partition": True,
+        }
+    ]
+    for row in described:
+        columns.append(
             {
                 "name": row[0],
                 "type": row[1],
                 "not_null": row[0] in pk or row[2] == "NO",
                 "primary_key": row[0] in pk,
+                "hive_partition": False,
             }
-            for row in described
-        ]
-        schemas[table] = {
-            "columns": columns,
-            "primary_key": pk,
-            "foreign_keys": FOREIGN_KEYS.get(table, ()),
-            "description": TABLE_DESCRIPTIONS[table],
-        }
-    return schemas
+        )
+    return columns
 
 
 # ---------------------------------------------------------------------------
@@ -299,6 +401,13 @@ def _write_schema_sql(schemas: dict[str, dict], path: Path) -> None:
     ]
     for table in TABLE_ORDER:
         meta = schemas[table]
+        if table == "observations":
+            lines.append("-- `observations` is published as a hive-partitioned tree:")
+            lines.append("--   observations/event_class=N/<instance_id>.parquet")
+            lines.append(
+                "-- `event_class` lives in the partition path; every other "
+                "column lives in the file body."
+            )
         col_defs = []
         for col in meta["columns"]:
             null_clause = " NOT NULL" if col["not_null"] else ""
@@ -361,14 +470,16 @@ def _write_schema_md(
         lines.append("")
         lines.append("**Columns:**")
         lines.append("")
-        lines.append("| Column | Type | Nullable | PK | Description |")
-        lines.append("|--------|------|----------|----|-------------|")
+        lines.append("| Column | Type | Nullable | PK | Source | Description |")
+        lines.append("|--------|------|----------|----|--------|-------------|")
         for col in meta["columns"]:
             nullable = "No" if col["not_null"] else "Yes"
             pk = "✓" if col["primary_key"] else ""
+            source = "hive partition" if col.get("hive_partition") else "file body"
             desc = COLUMN_DESCRIPTIONS.get(col["name"], "")
             lines.append(
-                f"| `{col['name']}` | {col['type']} | {nullable} | {pk} | {desc} |"
+                f"| `{col['name']}` | {col['type']} | {nullable} | {pk} | "
+                f"{source} | {desc} |"
             )
         lines.append("")
         if meta["foreign_keys"]:
@@ -414,9 +525,9 @@ def _write_readme(schemas: dict[str, dict], path: Path) -> None:
         "Labelled 1-Hz sensor-data windows for the Petrobras 3W dataset, "
         "republished as Parquet files. This release publishes the "
         "event-class lookup (`event_types.parquet`), the full Instance "
-        "catalog (`instances.parquet`), and the real-Well master "
-        "(`wells.parquet`); the per-Instance Observations time-series "
-        "(`observations/`) ships in the follow-up issue #22."
+        "catalog (`instances.parquet`), the real-Well master "
+        "(`wells.parquet`), and the per-Instance Observations time-series "
+        "(`observations/event_class=N/<instance_id>.parquet`)."
     )
     lines.append("")
     lines.append("## Upstream pin")
@@ -432,13 +543,20 @@ def _write_readme(schemas: dict[str, dict], path: Path) -> None:
         "publish orchestrator's validation log."
     )
     lines.append("")
-    lines.append("## Published files (this slice)")
+    lines.append("## Published files")
     lines.append("")
     lines.append("```")
     lines.append("petrobras_3w/")
     lines.append("├── event_types.parquet     # 10 rows, one per upstream event class")
     lines.append("├── wells.parquet           # 40 rows, one per real Well")
     lines.append("├── instances.parquet       # one row per upstream Instance file")
+    lines.append("├── observations/")
+    lines.append("│   ├── event_class=0/<instance_id>.parquet   # ~594 files")
+    lines.append("│   ├── …")
+    lines.append("│   ├── event_class=9/<instance_id>.parquet   # ~207 files")
+    lines.append(
+        "│   └── _files.json                            # manifest of every Observations file's relative path"
+    )
     lines.append("├── schema.md")
     lines.append("├── schema.json")
     lines.append("├── schema.sql")
@@ -535,6 +653,54 @@ def _write_readme(schemas: dict[str, dict], path: Path) -> None:
     lines.append("         w.first_ts, w.last_ts")
     lines.append("ORDER BY w.n_instances DESC;")
     lines.append("```")
+    lines.append("")
+    lines.append("### Load all real-Well Observations of one event class")
+    lines.append("")
+    lines.append(
+        "The Observations tree is hive-partitioned by `event_class`, so a "
+        "wildcard against one partition is a pruned scan — DuckDB only "
+        "touches files under that path. Each file carries `instance_id`, "
+        "`well_id`, `well_kind` as constant columns, so consumers can "
+        "filter by Well or provenance without joining the catalog:"
+    )
+    lines.append("")
+    lines.append("```sql")
+    lines.append('SELECT instance_id, well_id, "timestamp", "P-PDG", "T-PDG", class')
+    lines.append(f"FROM '{base_url}/observations/event_class=8/*.parquet'")
+    lines.append("WHERE well_kind = 'real'")
+    lines.append('ORDER BY instance_id, "timestamp";')
+    lines.append("```")
+    lines.append("")
+    lines.append("### Fetch one specific Instance by `source_url`")
+    lines.append("")
+    lines.append(
+        "Each row of `instances.parquet` carries the published URL of its "
+        "Observations file. Round-trip the catalog and the time-series in "
+        "two queries:"
+    )
+    lines.append("")
+    lines.append("```sql")
+    lines.append("-- 1. find the URL")
+    lines.append("SELECT source_url")
+    lines.append(f"FROM '{base_url}/instances.parquet'")
+    lines.append("WHERE instance_id = 'WELL-00019_20120601165020';")
+    lines.append("")
+    lines.append("-- 2. read the Observations")
+    lines.append(
+        f"SELECT * FROM '{base_url}/observations/"
+        f"event_class=8/WELL-00019_20120601165020.parquet';"
+    )
+    lines.append("```")
+    lines.append("")
+    lines.append("### Enumerate every Observations file (`_files.json`)")
+    lines.append("")
+    lines.append(
+        "A JSON-array manifest at `observations/_files.json` lists every "
+        "published file's path relative to the partition root, in catalog "
+        "order. Useful for consumers that prefer enumeration over "
+        "wildcard scans (e.g. ML training loops that iterate Instances "
+        "one at a time)."
+    )
     lines.append("")
     lines.append("## License")
     lines.append("")

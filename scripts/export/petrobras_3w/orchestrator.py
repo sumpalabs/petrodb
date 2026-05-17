@@ -25,6 +25,7 @@ def run(
     db_path: Path,
     output_dir: Path,
     dataset_ini: DatasetIni,
+    staging_dir: Path,
     website_root: Path | None = None,
 ) -> None:
     """Run the export pipeline.
@@ -34,6 +35,12 @@ def run(
     carries the dataset semver (asserted against the pin) and the
     sensor-column glossary used in schema.md.
 
+    ``staging_dir`` is the staged upstream tree. The Observations writer
+    reads one parquet per Instance from `<staging_dir>/dataset/N/` so
+    the catalog plus the source files together are sufficient to emit
+    `observations/event_class=N/<instance_id>.parquet` without holding
+    the full corpus in RAM.
+
     ``website_root`` is the repo root containing `README.md` and
     `parquet/index.html`. When provided, the static site is patched in
     place to surface the Petrobras 3W dataset; when None, the website
@@ -41,12 +48,14 @@ def run(
     """
     db_path = Path(db_path)
     output_dir = Path(output_dir)
+    staging_dir = Path(staging_dir)
 
     with duckdb.connect(str(db_path), read_only=True) as con:
         validator.validate(con, dataset_ini)
         parquet_writer.write_event_types(con, output_dir)
         parquet_writer.write_instances(con, output_dir)
         parquet_writer.write_wells(con, output_dir)
+        parquet_writer.write_observations(con, output_dir, staging_dir)
         schema_doc_generator.generate(con, output_dir, dataset_ini)
 
     if website_root is not None:

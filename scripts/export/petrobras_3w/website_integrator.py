@@ -63,8 +63,8 @@ def _readme_payload() -> str:
 Labelled 1-Hz sensor-data windows from the Petrobras 3W dataset, sliced
 into per-Instance Parquet files. Pinned at upstream git tag `{PIN_GIT_TAG}`
 (dataset version `{PIN_DATASET_VERSION}`). This release publishes the
-event-class lookup and the full Instance catalog; the real-Well master and
-Observations time-series ship in follow-up issues.
+event-class lookup, the real-Well master, the full Instance catalog, and
+the per-Instance Observations time-series (hive-partitioned by event class).
 
 Measure the labelled-data balance across the corpus from the catalog alone
 (no Observations scan needed):
@@ -109,7 +109,7 @@ def _index_tab_button_payload() -> str:
     return """\
             <button class="tab-button" data-tab="petrobras_3w">
                 Petrobras 3W
-                <span class="tab-count">3 files</span>
+                <span class="tab-count">3 files + ~2,228 instance time-series</span>
             </button>
 """
 
@@ -125,9 +125,9 @@ def _index_tab_content_payload() -> str:
                     Labelled 1-Hz sensor-data windows from the Petrobras 3W dataset.
                     Pinned at upstream git tag <code>{PIN_GIT_TAG}</code>
                     (dataset version <code>{PIN_DATASET_VERSION}</code>). This release
-                    publishes the event-class lookup, the full Instance catalog, and
-                    the real-Well master; the Observations time-series ships in
-                    follow-up issue #22.
+                    publishes the event-class lookup, the real-Well master, the full
+                    Instance catalog, and the per-Instance Observations time-series
+                    hive-partitioned by <code>event_class</code>.
                 </p>
                 <div class="download-grid">
                     <a href="petrobras_3w/event_types.parquet" class="download-button" download>
@@ -141,6 +141,10 @@ def _index_tab_content_payload() -> str:
                     <a href="petrobras_3w/instances.parquet" class="download-button" download>
                         <span>instances.parquet</span>
                         <span class="download-icon">⬇</span>
+                    </a>
+                    <a href="petrobras_3w/observations/_files.json" class="download-button">
+                        <span>observations/_files.json</span>
+                        <span class="download-icon">📜</span>
                     </a>
                 </div>
 
@@ -166,7 +170,7 @@ def _index_tab_content_payload() -> str:
                         <span class="download-icon">📄</span>
                     </a>
                 </div>
-                <p class="file-size">Lookup + Wells master + Instance catalog · pinned upstream identity logged on every publish</p>
+                <p class="file-size">Lookup + Wells master + Instance catalog + per-Instance Observations (hive-partitioned by event_class) · pinned upstream identity logged on every publish</p>
             </div>
 
             <!-- About Section -->
@@ -220,10 +224,25 @@ result = duckdb.<span class="function">sql</span>(<span class="function">f</span
 \"\"\"</span>).<span class="function">df</span>()</pre>
                 </div>
                 <p>
-                    More canonical patterns (single-Instance fetch, per-Well
-                    cross-validation splits) will land alongside the Observations
-                    files in follow-up releases.
+                    The per-Instance Observations files are accessible via the
+                    hive-partitioned URL pattern
+                    <code>observations/event_class=N/&lt;instance_id&gt;.parquet</code>.
+                    Each file embeds <code>instance_id</code>, <code>well_id</code>,
+                    and <code>well_kind</code> as constant columns, so corpus-wide
+                    queries against a single event class do not need to join the
+                    catalog:
                 </p>
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-dot"></span>
+                        <span class="code-dot"></span>
+                        <span class="code-dot"></span>
+                    </div>
+                    <pre><span class="comment">-- All real-Well Hydrate-in-Production-Line observations</span>
+SELECT instance_id, well_id, <span class="string">"timestamp"</span>, <span class="string">"P-PDG"</span>, <span class="string">"T-PDG"</span>, class
+FROM <span class="string">'https://dev-petrodb.ocortez.com/petrobras_3w/observations/event_class=8/*.parquet'</span>
+WHERE well_kind = <span class="string">'real'</span>;</pre>
+                </div>
             </section>
 
             <!-- Schema Documents Section -->

@@ -109,6 +109,7 @@ def test_pipeline_emits_event_types(tmp_path: Path) -> None:
         db_path=db_path,
         output_dir=out_dir,
         dataset_ini=dataset_ini,
+        staging_dir=staging,
         website_root=site_root,
     )
 
@@ -178,7 +179,12 @@ def test_pipeline_emits_documentation(tmp_path: Path) -> None:
     staging = _populated_staging(tmp_path)
 
     dataset_ini = transform_orch.run(db_path=db_path, staging_dir=staging)
-    export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+    export_orch.run(
+        db_path=db_path,
+        output_dir=out_dir,
+        dataset_ini=dataset_ini,
+        staging_dir=staging,
+    )
 
     for name in (
         "schema.md",
@@ -191,7 +197,33 @@ def test_pipeline_emits_documentation(tmp_path: Path) -> None:
 
     # schema.json reflects exactly the published parquet
     schema_payload = json.loads((out_dir / "schema.json").read_text())
-    assert set(schema_payload["tables"]) == {"event_types", "wells", "instances"}
+    assert set(schema_payload["tables"]) == {
+        "event_types",
+        "wells",
+        "instances",
+        "observations",
+    }
+    obs_cols = {c["name"] for c in schema_payload["tables"]["observations"]["columns"]}
+    # event_class lives in the hive partition, not in the file body — but
+    # we surface it as a logical column in the schema so consumers see
+    # the full data model. The constant columns instance_id / well_id /
+    # well_kind are present in every file body.
+    assert {
+        "event_class",
+        "instance_id",
+        "well_id",
+        "well_kind",
+        "timestamp",
+        "class",
+    }.issubset(obs_cols)
+    # Hyphenated source columns survive into the file body and the docs.
+    assert "P-PDG" in obs_cols
+    obs_hive_cols = {
+        c["name"]
+        for c in schema_payload["tables"]["observations"]["columns"]
+        if c.get("hive_partition")
+    }
+    assert obs_hive_cols == {"event_class"}
     wells_cols = {c["name"] for c in schema_payload["tables"]["wells"]["columns"]}
     assert wells_cols == {
         "well_id",
@@ -285,6 +317,7 @@ def test_website_integration_is_idempotent(tmp_path: Path) -> None:
         db_path=db_path,
         output_dir=out_dir,
         dataset_ini=dataset_ini,
+        staging_dir=staging,
         website_root=site_root,
     )
     first_readme = (site_root / "README.md").read_text()
@@ -303,6 +336,10 @@ def test_website_integration_is_idempotent(tmp_path: Path) -> None:
     assert "petrobras_3w/event_types.parquet" in first_index
     assert "petrobras_3w/instances.parquet" in first_index
     assert "petrobras_3w/wells.parquet" in first_index
+    # The Observations manifest is surfaced.
+    assert "petrobras_3w/observations/_files.json" in first_index
+    # The observations hive-glob query example is on the index page.
+    assert "observations/event_class=8/*.parquet" in first_index
     # Pin metadata is surfaced on the site.
     assert PIN_GIT_TAG in first_index
     assert PIN_DATASET_VERSION in first_index
@@ -312,6 +349,7 @@ def test_website_integration_is_idempotent(tmp_path: Path) -> None:
         db_path=db_path,
         output_dir=out_dir,
         dataset_ini=dataset_ini,
+        staging_dir=staging,
         website_root=site_root,
     )
     assert (site_root / "README.md").read_text() == first_readme
@@ -327,7 +365,12 @@ def test_validator_logs_pinned_upstream(
 
     dataset_ini = transform_orch.run(db_path=db_path, staging_dir=staging)
     with caplog.at_level(logging.INFO, logger="petrobras_3w.export"):
-        export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+        export_orch.run(
+            db_path=db_path,
+            output_dir=out_dir,
+            dataset_ini=dataset_ini,
+            staging_dir=staging,
+        )
 
     messages = "\n".join(record.getMessage() for record in caplog.records)
     assert PIN_GIT_TAG in messages
@@ -349,7 +392,12 @@ def test_validator_rejects_count_mismatch(
         con.execute("DELETE FROM event_types WHERE event_class = 9")
 
     with pytest.raises(validator.EventTypeCountError):
-        export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+        export_orch.run(
+            db_path=db_path,
+            output_dir=out_dir,
+            dataset_ini=dataset_ini,
+            staging_dir=staging,
+        )
 
     assert not (out_dir / "event_types.parquet").exists()
 
@@ -367,7 +415,12 @@ def test_validator_rejects_dataset_version_drift(tmp_path: Path) -> None:
 
     dataset_ini = transform_orch.run(db_path=db_path, staging_dir=staging)
     with pytest.raises(validator.UpstreamDatasetVersionError):
-        export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+        export_orch.run(
+            db_path=db_path,
+            output_dir=out_dir,
+            dataset_ini=dataset_ini,
+            staging_dir=staging,
+        )
 
     assert not (out_dir / "event_types.parquet").exists()
 
@@ -398,7 +451,12 @@ def test_pipeline_emits_instances_catalog(tmp_path: Path) -> None:
     staging = _populated_staging(tmp_path)
 
     dataset_ini = transform_orch.run(db_path=db_path, staging_dir=staging)
-    export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+    export_orch.run(
+        db_path=db_path,
+        output_dir=out_dir,
+        dataset_ini=dataset_ini,
+        staging_dir=staging,
+    )
 
     assert (out_dir / "instances.parquet").exists()
     rows = _read_instances(out_dir)
@@ -424,7 +482,12 @@ def test_instances_well_kind_and_well_id(tmp_path: Path) -> None:
     staging = _populated_staging(tmp_path)
 
     dataset_ini = transform_orch.run(db_path=db_path, staging_dir=staging)
-    export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+    export_orch.run(
+        db_path=db_path,
+        output_dir=out_dir,
+        dataset_ini=dataset_ini,
+        staging_dir=staging,
+    )
     by_id = {r["instance_id"]: r for r in _read_instances(out_dir)}
 
     # well_kind values reflect the upstream filename prefix.
@@ -451,7 +514,12 @@ def test_instances_row_count_accounting(tmp_path: Path) -> None:
     staging = _populated_staging(tmp_path)
 
     dataset_ini = transform_orch.run(db_path=db_path, staging_dir=staging)
-    export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+    export_orch.run(
+        db_path=db_path,
+        output_dir=out_dir,
+        dataset_ini=dataset_ini,
+        staging_dir=staging,
+    )
     rows = _read_instances(out_dir)
 
     for row in rows:
@@ -499,7 +567,12 @@ def test_instances_source_url_matches_adr0001_pattern(tmp_path: Path) -> None:
     staging = _populated_staging(tmp_path)
 
     dataset_ini = transform_orch.run(db_path=db_path, staging_dir=staging)
-    export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+    export_orch.run(
+        db_path=db_path,
+        output_dir=out_dir,
+        dataset_ini=dataset_ini,
+        staging_dir=staging,
+    )
     rows = _read_instances(out_dir)
 
     for row in rows:
@@ -516,7 +589,12 @@ def test_instances_source_file_retains_extension(tmp_path: Path) -> None:
     staging = _populated_staging(tmp_path)
 
     dataset_ini = transform_orch.run(db_path=db_path, staging_dir=staging)
-    export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+    export_orch.run(
+        db_path=db_path,
+        output_dir=out_dir,
+        dataset_ini=dataset_ini,
+        staging_dir=staging,
+    )
     rows = _read_instances(out_dir)
 
     for row in rows:
@@ -539,7 +617,12 @@ def test_validator_rejects_duplicate_instance_id(tmp_path: Path) -> None:
         )
 
     with pytest.raises(validator.InstancePkError):
-        export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+        export_orch.run(
+            db_path=db_path,
+            output_dir=out_dir,
+            dataset_ini=dataset_ini,
+            staging_dir=staging,
+        )
 
     assert not (out_dir / "instances.parquet").exists()
 
@@ -556,7 +639,12 @@ def test_validator_rejects_unknown_event_class(tmp_path: Path) -> None:
         con.execute("UPDATE instances SET event_class = 42 WHERE event_class = 9")
 
     with pytest.raises(validator.InstanceEventClassFkError):
-        export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+        export_orch.run(
+            db_path=db_path,
+            output_dir=out_dir,
+            dataset_ini=dataset_ini,
+            staging_dir=staging,
+        )
 
     assert not (out_dir / "instances.parquet").exists()
 
@@ -575,7 +663,12 @@ def test_validator_rejects_well_id_violation(tmp_path: Path) -> None:
         )
 
     with pytest.raises(validator.InstanceWellKindError):
-        export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+        export_orch.run(
+            db_path=db_path,
+            output_dir=out_dir,
+            dataset_ini=dataset_ini,
+            staging_dir=staging,
+        )
 
 
 def test_validator_rejects_transient_nullness_mismatch(tmp_path: Path) -> None:
@@ -592,7 +685,12 @@ def test_validator_rejects_transient_nullness_mismatch(tmp_path: Path) -> None:
         con.execute("UPDATE instances SET n_rows_transient = 0 WHERE event_class = 0")
 
     with pytest.raises(validator.InstanceTransientNullnessError):
-        export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+        export_orch.run(
+            db_path=db_path,
+            output_dir=out_dir,
+            dataset_ini=dataset_ini,
+            staging_dir=staging,
+        )
 
 
 def test_validator_rejects_row_count_accounting_break(tmp_path: Path) -> None:
@@ -610,7 +708,12 @@ def test_validator_rejects_row_count_accounting_break(tmp_path: Path) -> None:
         )
 
     with pytest.raises(validator.InstanceRowCountAccountingError):
-        export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+        export_orch.run(
+            db_path=db_path,
+            output_dir=out_dir,
+            dataset_ini=dataset_ini,
+            staging_dir=staging,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -642,7 +745,12 @@ def test_pipeline_emits_wells_master(tmp_path: Path) -> None:
     staging = _populated_staging(tmp_path)
 
     dataset_ini = transform_orch.run(db_path=db_path, staging_dir=staging)
-    export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+    export_orch.run(
+        db_path=db_path,
+        output_dir=out_dir,
+        dataset_ini=dataset_ini,
+        staging_dir=staging,
+    )
 
     assert (out_dir / "wells.parquet").exists()
     rows = _read_wells(out_dir)
@@ -686,7 +794,12 @@ def test_wells_excludes_simulated_and_drawn(tmp_path: Path) -> None:
     staging = _populated_staging(tmp_path)
 
     dataset_ini = transform_orch.run(db_path=db_path, staging_dir=staging)
-    export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+    export_orch.run(
+        db_path=db_path,
+        output_dir=out_dir,
+        dataset_ini=dataset_ini,
+        staging_dir=staging,
+    )
 
     well_ids = {r["well_id"] for r in _read_wells(out_dir)}
     # `wells.parquet` only has real-Well IDs; the simulated/drawn instances
@@ -703,7 +816,12 @@ def test_wells_aggregates_match_instances(tmp_path: Path) -> None:
     staging = _populated_staging(tmp_path)
 
     dataset_ini = transform_orch.run(db_path=db_path, staging_dir=staging)
-    export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+    export_orch.run(
+        db_path=db_path,
+        output_dir=out_dir,
+        dataset_ini=dataset_ini,
+        staging_dir=staging,
+    )
 
     con = duckdb.connect()
     real_instance_count, real_row_total = con.execute(
@@ -736,7 +854,12 @@ def test_validator_rejects_well_count_mismatch(tmp_path: Path) -> None:
         con.execute("DELETE FROM wells WHERE well_id = 42")
 
     with pytest.raises(validator.WellsRowCountError):
-        export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+        export_orch.run(
+            db_path=db_path,
+            output_dir=out_dir,
+            dataset_ini=dataset_ini,
+            staging_dir=staging,
+        )
 
     assert not (out_dir / "wells.parquet").exists()
 
@@ -760,7 +883,12 @@ def test_validator_rejects_well_id_orphan(tmp_path: Path) -> None:
         )
 
     with pytest.raises(validator.WellsIdFkError):
-        export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+        export_orch.run(
+            db_path=db_path,
+            output_dir=out_dir,
+            dataset_ini=dataset_ini,
+            staging_dir=staging,
+        )
 
 
 def test_validator_rejects_non_real_well_in_wells(tmp_path: Path) -> None:
@@ -785,4 +913,360 @@ def test_validator_rejects_non_real_well_in_wells(tmp_path: Path) -> None:
         )
 
     with pytest.raises(validator.WellsKindError):
-        export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+        export_orch.run(
+            db_path=db_path,
+            output_dir=out_dir,
+            dataset_ini=dataset_ini,
+            staging_dir=staging,
+        )
+
+
+# ---------------------------------------------------------------------------
+# observations time-series (issue #22)
+# ---------------------------------------------------------------------------
+
+
+def _run_pipeline(tmp_path: Path) -> tuple[Path, Path, Path]:
+    """Helper: run the full pipeline and return (db_path, out_dir, staging)."""
+    db_path = tmp_path / "petrobras_3w.duckdb"
+    out_dir = tmp_path / "parquet"
+    staging = _populated_staging(tmp_path)
+    dataset_ini = transform_orch.run(db_path=db_path, staging_dir=staging)
+    export_orch.run(
+        db_path=db_path,
+        output_dir=out_dir,
+        dataset_ini=dataset_ini,
+        staging_dir=staging,
+    )
+    return db_path, out_dir, staging
+
+
+def test_observations_layout(tmp_path: Path) -> None:
+    """One parquet per Instance under `observations/event_class=N/...`."""
+    _, out_dir, _ = _run_pipeline(tmp_path)
+
+    obs_root = out_dir / "observations"
+    assert obs_root.is_dir()
+
+    # Primary fixtures land in their declared partitions.
+    primary = {
+        0: "WELL-00001_20120101000000",
+        1: "WELL-00002_20120102000000",
+        3: "WELL-00003_20120103000000",
+        8: "SIMULATED_00001",
+        9: "DRAWN_00001",
+    }
+    for event_class, instance_id in primary.items():
+        target = obs_root / f"event_class={event_class}" / f"{instance_id}.parquet"
+        assert target.exists(), f"missing observations file: {target}"
+
+    # The padding event-0 fixtures are also published — total partition
+    # count of event_class=0 should match the count of event_0 instances
+    # in the catalog (1 primary + 37 padding = 38).
+    event_0_files = sorted((obs_root / "event_class=0").glob("*.parquet"))
+    assert len(event_0_files) == 38
+
+
+def test_observations_preserves_upstream_columns_and_adds_constants(
+    tmp_path: Path,
+) -> None:
+    """Body columns include hyphenated source columns + the three constants;
+    event_class is NOT stored in the file body (hive-only).
+    """
+    _, out_dir, _ = _run_pipeline(tmp_path)
+
+    target = (
+        out_dir / "observations" / "event_class=1" / "WELL-00002_20120102000000.parquet"
+    )
+    con = duckdb.connect()
+    # `hive_partitioning=false` because we are inspecting the file body
+    # specifically — DuckDB's hive autodetect would otherwise synthesize
+    # `event_class` from the parent directory name and mask the check.
+    described = con.execute(
+        f"DESCRIBE SELECT * FROM read_parquet('{target}', hive_partitioning=false)"
+    ).fetchall()
+    cols = {row[0] for row in described}
+
+    # Hyphenated source column survives the writer.
+    assert "P-PDG" in cols
+    # The body carries `class`, `state`, `timestamp` from upstream.
+    assert {"class", "state", "timestamp"}.issubset(cols)
+    # The three constant identifiers are added per row.
+    assert {"instance_id", "well_id", "well_kind"}.issubset(cols)
+    # `event_class` is NOT in the body — it lives in the hive partition.
+    assert "event_class" not in cols
+
+    # Constant columns are actually constant within the file.
+    rows = con.execute(
+        f"SELECT DISTINCT instance_id, well_id, well_kind "
+        f"FROM read_parquet('{target}', hive_partitioning=false)"
+    ).fetchall()
+    assert rows == [("WELL-00002_20120102000000", 2, "real")]
+
+
+def test_observations_simulated_well_id_null(tmp_path: Path) -> None:
+    """Simulated and drawn Instances carry NULL well_id in the body."""
+    _, out_dir, _ = _run_pipeline(tmp_path)
+
+    target = out_dir / "observations" / "event_class=8" / "SIMULATED_00001.parquet"
+    con = duckdb.connect()
+    rows = con.execute(
+        f"SELECT DISTINCT well_id, well_kind FROM read_parquet('{target}')"
+    ).fetchall()
+    assert rows == [(None, "simulated")]
+
+
+def test_observations_manifest_lists_every_file(tmp_path: Path) -> None:
+    """`observations/_files.json` enumerates every published file in
+    catalog order (sorted by event_class, then instance_id).
+    """
+    _, out_dir, _ = _run_pipeline(tmp_path)
+
+    manifest = json.loads((out_dir / "observations" / "_files.json").read_text())
+
+    # 5 primary + 37 padding = 42 published Observations files.
+    assert len(manifest) == 42
+    # Every entry resolves to an actual file.
+    for rel in manifest:
+        assert (out_dir / "observations" / rel).exists(), f"missing {rel}"
+    # Manifest contains relative paths only (no http URLs leaking in).
+    for rel in manifest:
+        assert not rel.startswith("http"), rel
+        assert rel.startswith("event_class="), rel
+    # Manifest is sorted by (event_class, instance_id) — matches catalog order.
+    assert manifest == sorted(manifest)
+
+
+def test_observations_query_pattern_in_readme(tmp_path: Path) -> None:
+    """The published README documents the hive-glob query pattern with
+    `well_kind = 'real'` filtering (parallel to the acceptance criterion).
+    """
+    _, out_dir, _ = _run_pipeline(tmp_path)
+
+    readme = (out_dir / "README.md").read_text()
+    assert "observations/event_class=8/*.parquet" in readme
+    assert "well_kind = 'real'" in readme
+
+
+def test_observations_event_class_in_schema_sql_is_quoted_safely(
+    tmp_path: Path,
+) -> None:
+    """The published schema.sql round-trips hyphenated identifiers."""
+    _, out_dir, _ = _run_pipeline(tmp_path)
+    schema_sql = (out_dir / "schema.sql").read_text()
+    # The hyphenated sensor columns must be quoted in the DDL.
+    assert '"P-PDG"' in schema_sql
+    # The observations table CREATE TABLE is emitted.
+    assert "CREATE TABLE observations" in schema_sql
+
+
+def test_validator_rejects_observations_orphan(tmp_path: Path) -> None:
+    """Rule 2: every observations `instance_id` must exist in `instances`."""
+    db_path = tmp_path / "petrobras_3w.duckdb"
+    out_dir = tmp_path / "parquet"
+    staging = _populated_staging(tmp_path)
+    dataset_ini = transform_orch.run(db_path=db_path, staging_dir=staging)
+
+    # Delete one Instance row but leave its staged parquet in place — the
+    # observations view still sees it, so rule 2 trips.
+    with duckdb.connect(str(db_path)) as con:
+        con.execute("DELETE FROM instances WHERE instance_id = 'SIMULATED_00001'")
+
+    with pytest.raises(validator.ObservationsInstanceFkError):
+        export_orch.run(
+            db_path=db_path,
+            output_dir=out_dir,
+            dataset_ini=dataset_ini,
+            staging_dir=staging,
+        )
+
+
+def test_validator_rejects_observations_row_count_mismatch(tmp_path: Path) -> None:
+    """Rule 5: per-Instance row count must equal `instances.n_rows`."""
+    db_path = tmp_path / "petrobras_3w.duckdb"
+    out_dir = tmp_path / "parquet"
+    staging = _populated_staging(tmp_path)
+    dataset_ini = transform_orch.run(db_path=db_path, staging_dir=staging)
+
+    # Bump `n_rows` AND `n_rows_steady` by the same amount so the four
+    # buckets still sum to n_rows (rule from #20 stays happy) but the
+    # catalog claims one more row than the observations actually contain
+    # — exactly the divergence rule 5 watches for.
+    with duckdb.connect(str(db_path)) as con:
+        con.execute(
+            "UPDATE instances "
+            "SET n_rows = n_rows + 1, n_rows_steady = n_rows_steady + 1 "
+            "WHERE instance_id = 'WELL-00001_20120101000000'"
+        )
+
+    with pytest.raises(validator.ObservationsRowCountError):
+        export_orch.run(
+            db_path=db_path,
+            output_dir=out_dir,
+            dataset_ini=dataset_ini,
+            staging_dir=staging,
+        )
+
+
+def _rewrite_staged_instance(staged_path: Path, mutate_sql: str) -> None:
+    """Read the staged instance parquet, apply `mutate_sql` against the
+    `staged` temp table, and overwrite the file in place.
+
+    Used to surgically break a single per-Observation invariant *after*
+    the transform pipeline has built the catalog, so the validator's
+    catalog-side checks (bucket accounting, FK, etc.) still pass and
+    the targeted Observation-side rule is the failing one.
+    """
+    con = duckdb.connect()
+    try:
+        con.execute(
+            f"CREATE TEMP TABLE staged AS "
+            f"SELECT * FROM read_parquet('{staged_path}', hive_partitioning=false)"
+        )
+        con.execute(mutate_sql)
+        con.execute(f"COPY staged TO '{staged_path}' (FORMAT PARQUET)")
+    finally:
+        con.close()
+
+
+def test_validator_rejects_observations_timestamp_gap(tmp_path: Path) -> None:
+    """Rule 5: timestamps must be strictly monotonic at 1-second cadence.
+
+    We run the transform pipeline first (so the catalog is clean), then
+    push the last timestamp on one Instance forward by one extra second
+    — this introduces a 2-second gap without changing the row count or
+    bucket distribution.
+    """
+    db_path = tmp_path / "petrobras_3w.duckdb"
+    out_dir = tmp_path / "parquet"
+    staging = _populated_staging(tmp_path)
+    dataset_ini = transform_orch.run(db_path=db_path, staging_dir=staging)
+
+    bad_path = staging / "dataset" / "1" / "WELL-00002_20120102000000.parquet"
+    _rewrite_staged_instance(
+        bad_path,
+        # Push the latest timestamp 1 second further out, creating a gap
+        # of 2 seconds between it and its predecessor.
+        "UPDATE staged "
+        'SET "timestamp" = "timestamp" + INTERVAL \'1 second\' '
+        'WHERE "timestamp" = (SELECT MAX("timestamp") FROM staged)',
+    )
+
+    with pytest.raises(validator.ObservationsTimestampError):
+        export_orch.run(
+            db_path=db_path,
+            output_dir=out_dir,
+            dataset_ini=dataset_ini,
+            staging_dir=staging,
+        )
+
+
+def test_validator_rejects_observations_class_outside_domain(
+    tmp_path: Path,
+) -> None:
+    """Rule 5: per-row `class` must lie in {NULL, 0, event_class, transient_code}.
+
+    Replace one STEADY (class=1) row in an event-1 Instance with class=7
+    (a code that belongs to a different event). Row count and bucket
+    accounting on the catalog side are not affected by this in-place
+    swap; only the per-observation class domain trips.
+    """
+    db_path = tmp_path / "petrobras_3w.duckdb"
+    out_dir = tmp_path / "parquet"
+    staging = _populated_staging(tmp_path)
+    dataset_ini = transform_orch.run(db_path=db_path, staging_dir=staging)
+
+    bad_path = staging / "dataset" / "1" / "WELL-00002_20120102000000.parquet"
+    _rewrite_staged_instance(
+        bad_path,
+        # Replace exactly one of the STEADY (class=1) rows with class=7.
+        "UPDATE staged SET class = 7 "
+        'WHERE "timestamp" = ('
+        '    SELECT MIN("timestamp") FROM staged WHERE class = 1'
+        ")",
+    )
+
+    with pytest.raises(validator.ObservationsClassDomainError):
+        export_orch.run(
+            db_path=db_path,
+            output_dir=out_dir,
+            dataset_ini=dataset_ini,
+            staging_dir=staging,
+        )
+
+
+def test_validator_rejects_observations_non_transient_class_zero(
+    tmp_path: Path,
+) -> None:
+    """Rule 6: events 3 and 4 must carry no `class >= 100` and no `class = 0`.
+
+    Mutating one row of an event-3 Instance to `class = 0` keeps the
+    catalog's row count and bucket totals (the row was class = 3 = steady,
+    becomes class = 0 = invalid for event 3 by rule 6) — wait, this
+    changes the per-row class so the steady bucket count from the
+    catalog would no longer match observations. To trip rule 6
+    cleanly, we instead append a new event-3 Instance file by writing
+    a single-row file with class = 0 and re-running transform so the
+    catalog reflects the new file's 1-row count; rule 6 then fires.
+    """
+    db_path = tmp_path / "petrobras_3w.duckdb"
+    out_dir = tmp_path / "parquet"
+    staging = _populated_staging(tmp_path)
+
+    # Drop a new event-3 file with a single class=0 row, then build the
+    # catalog from the modified staging. n_rows=1, buckets are all 0
+    # except… well, none of the buckets count class=0 with event_class=3
+    # because n_rows_normal excludes event 0/3/4-class instances? Let me
+    # re-read CONTEXT.md: `n_rows_normal` is "rows where class=0 AND
+    # event_class<>0". For event 3, class=0 row counts to normal=1.
+    # Buckets: warmup=0, normal=1, transient=NULL (event 3 has_transient=
+    # false), steady=0. Sum = 1 == n_rows. Catalog accounting OK.
+    extra_path = staging / "dataset" / "3" / "WELL-00099_20990101000000.parquet"
+    con = duckdb.connect()
+    try:
+        con.execute(
+            "CREATE TEMP TABLE staged ("
+            '    "timestamp" TIMESTAMP,'
+            '    "class"     INTEGER,'
+            '    "state"     INTEGER,'
+            '    "P-PDG"     DOUBLE'
+            ")"
+        )
+        con.execute(
+            "INSERT INTO staged VALUES (TIMESTAMP '2099-01-01 00:00:00', 0, 0, 1.0e7)"
+        )
+        con.execute(f"COPY staged TO '{extra_path}' (FORMAT PARQUET)")
+    finally:
+        con.close()
+
+    dataset_ini = transform_orch.run(db_path=db_path, staging_dir=staging)
+    # Adding a new well_id (99) bumps real-Well rowcount to 41 and trips
+    # rule 7 before rule 6 — drop the freshly added wells row so rule 6
+    # fires first. Also drop the corresponding instances row's well_id
+    # FK so rule 3 stays happy. Easiest: also drop the new instance from
+    # the wells master only; the instances table still references
+    # well_id 99 which would trip rule 3 (wells FK). So delete the new
+    # well_id 99 entirely from instances AND wells, leaving the staged
+    # file in place so the observations view still sees it as an
+    # orphan… that trips rule 2 first.
+    #
+    # Cleanest path: keep all the existing fixtures untouched and add
+    # the new well_id to wells too, so rule 7's count becomes 41. To
+    # keep rule 7 at 40, drop one padding well that has no instances
+    # in `instances` table beyond its single-row event-0 fixture, then
+    # delete that instance and its staged file.
+    with duckdb.connect(str(db_path)) as con:
+        # Remove well 42 (a single-instance padding fixture). Also
+        # remove its instance from the catalog and its staged file from
+        # disk, so the catalog stays consistent.
+        con.execute("DELETE FROM wells WHERE well_id = 42")
+        con.execute("DELETE FROM instances WHERE well_id = 42")
+    (staging / "dataset" / "0" / "WELL-00042_20120101000000.parquet").unlink()
+
+    with pytest.raises(validator.ObservationsNonTransientClassError):
+        export_orch.run(
+            db_path=db_path,
+            output_dir=out_dir,
+            dataset_ini=dataset_ini,
+            staging_dir=staging,
+        )

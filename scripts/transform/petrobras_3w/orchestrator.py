@@ -2,10 +2,11 @@
 
 Stages the pinned upstream tag, parses `dataset.ini`, builds the
 `event_types` lookup, aggregates every staged instance file into the
-`instances` catalog, and derives the `wells` master from those real-Well
-instances. The remaining slice (#22 — observations) extends this file
-with the per-Instance Observations writer; staging + ini-parse + the
-catalog tables are shared.
+`instances` catalog, derives the `wells` master from those real-Well
+instances, and exposes the `observations` view (a thin enrichment over
+the staged per-Instance parquets) for the validator. The catalog
+tables are materialised; `observations` stays as a view so the full
+corpus never has to live in RAM.
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ import duckdb
 from scripts.transform.petrobras_3w import (
     event_types_builder,
     instances_builder,
+    observations_builder,
     upstream_stager,
     wells_builder,
 )
@@ -40,5 +42,6 @@ def run(db_path: Path, staging_dir: Path) -> DatasetIni:
         event_types_builder.build(con, dataset_ini)
         instances_builder.build(con, staging_dir)
         wells_builder.build(con)
+        observations_builder.build(con, staging_dir)
 
     return dataset_ini

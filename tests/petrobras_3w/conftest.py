@@ -1,10 +1,10 @@
 """Shared fixture helpers for the Petrobras 3W pipeline tests.
 
 The smoke test populates a fixture upstream tree (just `dataset.ini`)
-into a per-test `tmp_path` and short-circuits the shallow-clone. Once
-issue #20 lands, the transform pipeline also reads per-Instance parquet
-files from `<staging>/dataset/N/*.parquet`, so each test that exercises
-the orchestrator needs a small set of those files alongside the ini.
+into a per-test `tmp_path` and short-circuits the shallow-clone. The
+transform pipeline reads per-Instance parquet files from
+`<staging>/dataset/N/*.parquet`, so each test that exercises the
+orchestrator needs a small set of those files alongside the ini.
 
 `build_instance_parquets` materializes them in a deterministic, minimal
 shape:
@@ -27,9 +27,12 @@ shape:
   pins on, and using the exact upstream gap means the happy-path tests
   exercise rule 7 against a realistic catalog.
 
-Each file carries only the columns the instances builder needs
-(`timestamp`, `class`); the full 27-sensor schema lands with the
-Observations slice (#22).
+Each file carries `timestamp`, `class`, `state`, plus one hyphenated
+sensor column (`P-PDG`) so the Observations writer's column-name
+fidelity (rule from CONTEXT.md: hyphens preserved) is exercised end-
+to-end. The full 27-sensor production schema is broader; the writer
+preserves whatever the source carries, so a single representative
+hyphenated column is enough to assert the policy.
 """
 
 from __future__ import annotations
@@ -126,6 +129,10 @@ def build_instance_parquets(staging_dir: Path) -> None:
     Idempotent: re-running with an existing tree overwrites in place. Uses
     DuckDB so the fixture format matches what `read_parquet` will see in
     the pipeline (timestamp column written as a TIMESTAMP).
+
+    The fixture carries a hyphenated sensor column (`P-PDG`) so the
+    Observations writer's column-name fidelity policy is exercised in
+    the smoke test.
     """
     dataset_root = Path(staging_dir) / "dataset"
     con = duckdb.connect()
@@ -137,19 +144,27 @@ def build_instance_parquets(staging_dir: Path) -> None:
             con.execute("DROP TABLE IF EXISTS staging_rows")
             con.execute(
                 "CREATE TEMP TABLE staging_rows ("
-                "    timestamp TIMESTAMP,"
-                "    class     INTEGER"
+                '    "timestamp" TIMESTAMP,'
+                '    "class"     INTEGER,'
+                '    "state"     INTEGER,'
+                '    "P-PDG"     DOUBLE'
                 ")"
             )
             rows = [
-                (f"2012-01-01 00:00:{i:02d}", cls) for i, cls in enumerate(spec.classes)
+                (
+                    f"2012-01-01 00:00:{i:02d}",
+                    cls,
+                    0,
+                    1.0e7 + i,
+                )
+                for i, cls in enumerate(spec.classes)
             ]
             con.executemany(
-                "INSERT INTO staging_rows VALUES (?, ?)",
+                "INSERT INTO staging_rows VALUES (?, ?, ?, ?)",
                 rows,
             )
             con.execute(
-                f"COPY (SELECT * FROM staging_rows ORDER BY timestamp) "
+                f'COPY (SELECT * FROM staging_rows ORDER BY "timestamp") '
                 f"TO '{target}' (FORMAT PARQUET)"
             )
     finally:
