@@ -53,6 +53,36 @@ four-bucket rationale, and three more canonical query patterns live in
 
 <!-- argentina:end -->
 
+<!-- petrobras_3w:begin -->
+
+### Petrobras 3W Dataset
+Labelled 1-Hz sensor-data windows from the Petrobras 3W dataset, sliced
+into per-Instance Parquet files. Pinned at upstream git tag `v.1.70.0`
+(dataset version `2.0.0`). This initial release publishes
+the event-class lookup and documentation scaffolding; the Instance catalog,
+real-Well master, and Observations time-series ship in follow-up issues.
+
+List every event class (NORMAL plus the nine anomaly categories) with their
+TRANSIENT-arc semantics:
+
+```python
+import duckdb
+
+result = duckdb.sql("""
+    SELECT event_class, name, description,
+           has_transient, transient_code
+    FROM 'https://dev-petrodb.ocortez.com/petrobras_3w/event_types.parquet'
+    ORDER BY event_class
+""").df()
+```
+
+Full per-column English docs (including the 27-sensor glossary mirrored
+from upstream `dataset.ini`) live in
+[`parquet/petrobras_3w/README.md`](parquet/petrobras_3w/README.md). Upstream
+source: <https://github.com/petrobras/3W.git> (CC BY 4.0).
+
+<!-- petrobras_3w:end -->
+
 ## Access Data
 
 Browse and download files at: **https://dev-petrodb.ocortez.com**

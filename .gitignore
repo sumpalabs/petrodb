@@ -210,6 +210,11 @@ __marimo__/
 .duckdb/
 database/argentina.duckdb
 database/argentina.duckdb.wal
+database/petrobras_3w.duckdb
+database/petrobras_3w.duckdb.wal
+
+# Petrobras 3W upstream shallow clone (see ADR-0002 for the pin policy)
+data/petrobras_3w/
 
 # Tool cache/config directories (from container)
 .config/

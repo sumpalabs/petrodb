@@ -1,0 +1,56 @@
+{
+  "dataset": "petrobras_3w",
+  "description": "Labelled 1-Hz sensor-data windows from the Petrobras 3W dataset, sliced into Instances and grouped by Event class.",
+  "upstream": {
+    "repo": "https://github.com/petrobras/3W.git",
+    "git_tag": "v.1.70.0",
+    "dataset_version": "2.0.0"
+  },
+  "tables": {
+    "event_types": {
+      "description": "Static lookup of upstream event classes (`0..9`). Mirrors the `[NAMES]` / per-class `LABEL`/`DESCRIPTION`/`TRANSIENT` sections from upstream `dataset.ini`, plus the two derived columns `transient_code` and `has_normal_prefix` that materialize the NORMAL → TRANSIENT → STEADY arc semantics so consumers do not have to re-derive them from per-observation `class` codes.",
+      "columns": [
+        {
+          "name": "event_class",
+          "type": "INTEGER",
+          "not_null": true,
+          "primary_key": true
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "description",
+          "type": "VARCHAR",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "has_transient",
+          "type": "BOOLEAN",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "transient_code",
+          "type": "INTEGER",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "has_normal_prefix",
+          "type": "BOOLEAN",
+          "not_null": false,
+          "primary_key": false
+        }
+      ],
+      "primary_key": [
+        "event_class"
+      ],
+      "foreign_keys": []
+    }
+  }
+}
