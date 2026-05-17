@@ -34,7 +34,7 @@ from scripts.transform.petrobras_3w.constants import (
 from scripts.transform.petrobras_3w.upstream_stager import DatasetIni
 
 # Tables documented in this slice. Later slices append to this tuple.
-TABLE_ORDER = ("event_types", "instances")
+TABLE_ORDER = ("event_types", "wells", "instances")
 
 TABLE_DESCRIPTIONS = {
     "event_types": (
@@ -44,6 +44,16 @@ TABLE_DESCRIPTIONS = {
         "`transient_code` and `has_normal_prefix` that materialize the "
         "NORMAL → TRANSIENT → STEADY arc semantics so consumers do not "
         "have to re-derive them from per-observation `class` codes."
+    ),
+    "wells": (
+        "Real-Well master, one row per distinct `well_id` derived from "
+        "Instances with `well_kind = 'real'` (40 rows at the current "
+        "upstream pin). Upstream anonymises every physical-well attribute "
+        "(no basin, field, depth, or location), so the master is an "
+        "identity-plus-statistics table: count of Instances, total 1-Hz "
+        "Observations, and the time span across which the Well appears "
+        "in the corpus. Simulated and drawn Instances have NULL `well_id` "
+        "and contribute nothing here."
     ),
     "instances": (
         "One row per upstream Instance file (~2,228 rows). Identifies the "
@@ -61,6 +71,7 @@ TABLE_DESCRIPTIONS = {
 
 PRIMARY_KEYS = {
     "event_types": ("event_class",),
+    "wells": ("well_id",),
     "instances": ("instance_id",),
 }
 
@@ -70,6 +81,11 @@ FOREIGN_KEYS: dict[str, tuple[dict, ...]] = {
             "column": "event_class",
             "references_table": "event_types",
             "references_column": "event_class",
+        },
+        {
+            "column": "well_id",
+            "references_table": "wells",
+            "references_column": "well_id",
         },
     ),
 }
@@ -119,9 +135,29 @@ COLUMN_DESCRIPTIONS = {
         "`well_kind = 'real'`."
     ),
     "well_id": (
-        "Anonymised physical-well integer ID parsed from the `WELL-NNNNN` "
-        "prefix of `instance_id`. NULL when `well_kind != 'real'`. Foreign "
-        "key to `wells.parquet` once that table lands in #21."
+        "Anonymised physical-well integer ID. On `wells` this is the "
+        "primary key (one row per real Well). On `instances` it is parsed "
+        "from the `WELL-NNNNN` prefix of `instance_id` and is NULL when "
+        "`well_kind != 'real'` — a foreign key back to `wells.well_id`."
+    ),
+    # wells
+    "n_instances": (
+        "Number of Instances in the corpus drawn from this real Well. "
+        "Equal to `COUNT(*) FROM instances WHERE well_kind = 'real' AND "
+        "well_id = wells.well_id`."
+    ),
+    "first_ts": (
+        "Earliest Instance `start_ts` for the Well. The Well's first "
+        "appearance in the corpus."
+    ),
+    "last_ts": (
+        "Latest Instance `end_ts` for the Well. The Well's last "
+        "appearance in the corpus."
+    ),
+    "n_observations": (
+        "Total count of 1-Hz Observations contributed by this Well across "
+        "all of its Instances. Equal to `SUM(n_rows) FROM instances WHERE "
+        "well_kind = 'real' AND well_id = wells.well_id`."
     ),
     "start_ts": ("First `timestamp` value in the upstream Instance file."),
     "end_ts": ("Last `timestamp` value in the upstream Instance file."),
@@ -377,10 +413,10 @@ def _write_readme(schemas: dict[str, dict], path: Path) -> None:
     lines.append(
         "Labelled 1-Hz sensor-data windows for the Petrobras 3W dataset, "
         "republished as Parquet files. This release publishes the "
-        "event-class lookup (`event_types.parquet`) and the full Instance "
-        "catalog (`instances.parquet`); the real-Well master "
-        "(`wells.parquet`) and the per-Instance Observations time-series "
-        "(`observations/`) ship in follow-up issues (#21, #22)."
+        "event-class lookup (`event_types.parquet`), the full Instance "
+        "catalog (`instances.parquet`), and the real-Well master "
+        "(`wells.parquet`); the per-Instance Observations time-series "
+        "(`observations/`) ships in the follow-up issue #22."
     )
     lines.append("")
     lines.append("## Upstream pin")
@@ -401,6 +437,7 @@ def _write_readme(schemas: dict[str, dict], path: Path) -> None:
     lines.append("```")
     lines.append("petrobras_3w/")
     lines.append("├── event_types.parquet     # 10 rows, one per upstream event class")
+    lines.append("├── wells.parquet           # 40 rows, one per real Well")
     lines.append("├── instances.parquet       # one row per upstream Instance file")
     lines.append("├── schema.md")
     lines.append("├── schema.json")
@@ -474,6 +511,29 @@ def _write_readme(schemas: dict[str, dict], path: Path) -> None:
     lines.append("WHERE event_class = 8")
     lines.append("  AND well_kind = 'real'")
     lines.append("ORDER BY start_ts;")
+    lines.append("```")
+    lines.append("")
+    lines.append("### Per-Well corpus footprint (join `wells` with `instances`)")
+    lines.append("")
+    lines.append(
+        "The `wells` master pre-aggregates each Well's Instance and "
+        "Observation counts so coverage tables can be built without "
+        "scanning Observations:"
+    )
+    lines.append("")
+    lines.append("```sql")
+    lines.append("SELECT")
+    lines.append("    w.well_id,")
+    lines.append("    w.n_instances,")
+    lines.append("    w.n_observations,")
+    lines.append("    w.first_ts,")
+    lines.append("    w.last_ts,")
+    lines.append("    COUNT(DISTINCT i.event_class) AS distinct_event_classes")
+    lines.append(f"FROM '{base_url}/wells.parquet' w")
+    lines.append(f"JOIN '{base_url}/instances.parquet' i USING (well_id)")
+    lines.append("GROUP BY w.well_id, w.n_instances, w.n_observations,")
+    lines.append("         w.first_ts, w.last_ts")
+    lines.append("ORDER BY w.n_instances DESC;")
     lines.append("```")
     lines.append("")
     lines.append("## License")

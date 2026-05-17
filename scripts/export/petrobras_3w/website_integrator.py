@@ -109,7 +109,7 @@ def _index_tab_button_payload() -> str:
     return """\
             <button class="tab-button" data-tab="petrobras_3w">
                 Petrobras 3W
-                <span class="tab-count">2 files</span>
+                <span class="tab-count">3 files</span>
             </button>
 """
 
@@ -125,13 +125,17 @@ def _index_tab_content_payload() -> str:
                     Labelled 1-Hz sensor-data windows from the Petrobras 3W dataset.
                     Pinned at upstream git tag <code>{PIN_GIT_TAG}</code>
                     (dataset version <code>{PIN_DATASET_VERSION}</code>). This release
-                    publishes the event-class lookup and the full Instance catalog;
-                    the real-Well master and Observations time-series ship in follow-up
-                    issues.
+                    publishes the event-class lookup, the full Instance catalog, and
+                    the real-Well master; the Observations time-series ships in
+                    follow-up issue #22.
                 </p>
                 <div class="download-grid">
                     <a href="petrobras_3w/event_types.parquet" class="download-button" download>
                         <span>event_types.parquet</span>
+                        <span class="download-icon">⬇</span>
+                    </a>
+                    <a href="petrobras_3w/wells.parquet" class="download-button" download>
+                        <span>wells.parquet</span>
                         <span class="download-icon">⬇</span>
                     </a>
                     <a href="petrobras_3w/instances.parquet" class="download-button" download>
@@ -162,7 +166,7 @@ def _index_tab_content_payload() -> str:
                         <span class="download-icon">📄</span>
                     </a>
                 </div>
-                <p class="file-size">One lookup table + Instance catalog · pinned upstream identity logged on every publish</p>
+                <p class="file-size">Lookup + Wells master + Instance catalog · pinned upstream identity logged on every publish</p>
             </div>
 
             <!-- About Section -->

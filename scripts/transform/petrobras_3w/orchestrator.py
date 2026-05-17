@@ -1,10 +1,11 @@
 """Petrobras 3W transform-phase orchestrator.
 
 Stages the pinned upstream tag, parses `dataset.ini`, builds the
-`event_types` lookup, and aggregates every staged instance file into the
-`instances` catalog. Subsequent issues (#21 — wells, #22 — observations)
-extend this file with their builders; the staging + ini-parse steps are
-shared.
+`event_types` lookup, aggregates every staged instance file into the
+`instances` catalog, and derives the `wells` master from those real-Well
+instances. The remaining slice (#22 — observations) extends this file
+with the per-Instance Observations writer; staging + ini-parse + the
+catalog tables are shared.
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ from scripts.transform.petrobras_3w import (
     event_types_builder,
     instances_builder,
     upstream_stager,
+    wells_builder,
 )
 from scripts.transform.petrobras_3w.upstream_stager import DatasetIni
 
@@ -37,5 +39,6 @@ def run(db_path: Path, staging_dir: Path) -> DatasetIni:
     with duckdb.connect(str(db_path)) as con:
         event_types_builder.build(con, dataset_ini)
         instances_builder.build(con, staging_dir)
+        wells_builder.build(con)
 
     return dataset_ini

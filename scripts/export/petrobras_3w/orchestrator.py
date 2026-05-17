@@ -46,6 +46,7 @@ def run(
         validator.validate(con, dataset_ini)
         parquet_writer.write_event_types(con, output_dir)
         parquet_writer.write_instances(con, output_dir)
+        parquet_writer.write_wells(con, output_dir)
         schema_doc_generator.generate(con, output_dir, dataset_ini)
 
     if website_root is not None:

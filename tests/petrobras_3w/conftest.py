@@ -9,17 +9,23 @@ the orchestrator needs a small set of those files alongside the ini.
 `build_instance_parquets` materializes them in a deterministic, minimal
 shape:
 
-- 5 instances covering 5 event classes across the three `well_kind`s
-  (real / simulated / drawn).
-- Event 0 (NORMAL, has_transient=false): single 10-row file, all class=0.
-- Event 1 (has_transient=true): NORMAL warmup-null + NORMAL + TRANSIENT
-  (101) + STEADY (1) arc.
-- Event 3 (Severe Slugging, has_transient=false): steady-only file.
-- Event 8 (Hydrate in Production Line, simulated, has_transient=true):
-  no warmup-null because well_kind != real; NORMAL + TRANSIENT (108) +
-  STEADY (8).
-- Event 9 (Hydrate in Service Line, drawn, has_transient=true):
-  TRANSIENT (109) + STEADY (9) — no NORMAL prefix.
+- 5 *primary* instances covering 5 event classes across the three
+  `well_kind`s (real / simulated / drawn):
+  - Event 0 (NORMAL, has_transient=false): single 10-row file, all class=0.
+  - Event 1 (has_transient=true): NORMAL warmup-null + NORMAL + TRANSIENT
+    (101) + STEADY (1) arc.
+  - Event 3 (Severe Slugging, has_transient=false): steady-only file.
+  - Event 8 (Hydrate in Production Line, simulated, has_transient=true):
+    no warmup-null because well_kind != real; NORMAL + TRANSIENT (108) +
+    STEADY (8).
+  - Event 9 (Hydrate in Service Line, drawn, has_transient=true):
+    TRANSIENT (109) + STEADY (9) — no NORMAL prefix.
+- 37 *padding* real-Well event-0 fixtures (one 1-row file per well) so
+  the total distinct real well count matches the upstream pin of 40
+  (`00001..00016`, `00019..00042` — IDs 17 and 18 are absent upstream
+  and stay absent here). The well-count is what `validator` rule 7
+  pins on, and using the exact upstream gap means the happy-path tests
+  exercise rule 7 against a realistic catalog.
 
 Each file carries only the columns the instances builder needs
 (`timestamp`, `class`); the full 27-sensor schema lands with the
@@ -41,7 +47,7 @@ class _InstanceSpec:
     classes: tuple[int | None, ...]
 
 
-_INSTANCE_SPECS: tuple[_InstanceSpec, ...] = (
+_PRIMARY_SPECS: tuple[_InstanceSpec, ...] = (
     _InstanceSpec(
         event_class=0,
         filename="WELL-00001_20120101000000.parquet",
@@ -84,6 +90,34 @@ _INSTANCE_SPECS: tuple[_InstanceSpec, ...] = (
         classes=(109, 109, 109, 9, 9, 9),
     ),
 )
+
+# Real-Well IDs that exist in the upstream pin (`v.1.70.0`, dataset
+# version `2.0.0`) but are not covered by the five primary fixtures.
+# Matches the upstream gap at IDs 17 and 18 exactly so the total count
+# reproduces the pinned 40 distinct real wells (rule 7 in the validator).
+_PADDING_REAL_WELL_IDS: tuple[int, ...] = (
+    *range(4, 17),  # 00004 .. 00016
+    *range(19, 43),  # 00019 .. 00042
+)
+
+
+def _padding_specs() -> tuple[_InstanceSpec, ...]:
+    """Single-row event-0 instances for the wells that the primary fixtures
+    do not cover. Keeps the per-file row count at 1 so the validator's
+    bucket accounting (rule from #20) and the wells aggregates stay
+    straightforward to reason about in tests.
+    """
+    return tuple(
+        _InstanceSpec(
+            event_class=0,
+            filename=f"WELL-{well_id:05d}_20120101000000.parquet",
+            classes=(0,),
+        )
+        for well_id in _PADDING_REAL_WELL_IDS
+    )
+
+
+_INSTANCE_SPECS: tuple[_InstanceSpec, ...] = _PRIMARY_SPECS + _padding_specs()
 
 
 def build_instance_parquets(staging_dir: Path) -> None:

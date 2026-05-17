@@ -23,6 +23,18 @@ added. This slice covers:
 - The four `n_rows_*` columns sum to `n_rows` for every row (treating
   the NULL `n_rows_transient` as zero).
 
+`wells` (#21):
+- Every non-NULL `instances.well_id` exists in `wells.well_id` (rule 3
+  — FK integrity).
+- `wells.well_id` is limited to the union of `instances.well_id WHERE
+  well_kind = 'real'` (rule 8 — no synthetic IDs leak in).
+- `wells.well_id` rowcount matches the pinned real-Well count derived
+  from upstream filename prefixes at `v.1.70.0` (rule 7,
+  EXPECTED_REAL_WELL_COUNT = 40). Upstream's `dataset/README.md`
+  states "42 real wells covered" but only 40 IDs actually appear in
+  instance filenames (IDs 17 and 18 are absent); the validator pins on
+  the observed 40 so upstream version drift surfaces as a hard fail.
+
 Also emits the pinned upstream identity (git tag + dataset version) to
 the validation log so consumers reading export output can verify the
 upstream snapshot, per ADR-0002 and issue #19's acceptance criteria.
@@ -43,6 +55,10 @@ from scripts.transform.petrobras_3w.upstream_stager import DatasetIni
 EXPECTED_EVENT_TYPES_COUNT = 10
 NON_TRANSIENT_EVENT_CLASSES = (0, 3, 4)
 VALID_WELL_KINDS = ("real", "simulated", "drawn")
+# Distinct real-Well IDs at the pinned upstream tag `v.1.70.0` /
+# dataset version `2.0.0`. Derived by listing every
+# `dataset/N/WELL-NNNNN_*` filename prefix in the upstream tree.
+EXPECTED_REAL_WELL_COUNT = 40
 
 
 class EventTypeCountError(Exception):
@@ -83,6 +99,21 @@ class InstanceRowCountAccountingError(Exception):
     does not equal `n_rows` for at least one Instance."""
 
 
+class WellsIdFkError(Exception):
+    """An `instances.well_id` is non-NULL but missing from `wells` (rule 3)."""
+
+
+class WellsRowCountError(Exception):
+    """`wells` rowcount diverges from the pinned upstream real-Well count
+    (rule 7). Likely upstream version drift; refresh required."""
+
+
+class WellsKindError(Exception):
+    """`wells.well_id` is not the well_id of any `well_kind = 'real'`
+    instance (rule 8). Synthetic / simulated / drawn IDs must not leak
+    into the real-Well master."""
+
+
 def log_pinned_upstream(
     dataset_ini: DatasetIni, logger: logging.Logger | None = None
 ) -> None:
@@ -121,6 +152,9 @@ def validate(
     _validate_instances_well_kind(con)
     _validate_instances_transient_nullness(con)
     _validate_instances_row_count_accounting(con)
+    _validate_wells_row_count(con)
+    _validate_wells_id_fk(con)
+    _validate_wells_kind(con)
 
 
 def _validate_event_types_row_count(con: duckdb.DuckDBPyConnection) -> None:
@@ -269,4 +303,50 @@ def _validate_instances_row_count_accounting(con: duckdb.DuckDBPyConnection) -> 
         raise InstanceRowCountAccountingError(
             f"instances has {mismatches} row(s) where the four n_rows_* "
             f"sub-counts do not sum to n_rows"
+        )
+
+
+def _validate_wells_row_count(con: duckdb.DuckDBPyConnection) -> None:
+    """Rule 7: `wells.parquet` rowcount equals the pinned real-Well count."""
+    row_count = con.execute("SELECT COUNT(*) FROM wells").fetchone()[0]
+    if row_count != EXPECTED_REAL_WELL_COUNT:
+        raise WellsRowCountError(
+            f"wells has {row_count} row(s); upstream pin "
+            f"({PIN_GIT_TAG} / dataset {PIN_DATASET_VERSION}) expects "
+            f"{EXPECTED_REAL_WELL_COUNT}. Likely upstream drift — refresh."
+        )
+
+
+def _validate_wells_kind(con: duckdb.DuckDBPyConnection) -> None:
+    """Rule 8: every `wells.well_id` is the `well_id` of at least one
+    `well_kind = 'real'` instance.
+    """
+    orphans = con.execute(
+        """
+        SELECT COUNT(*) FROM wells w
+        WHERE NOT EXISTS (
+            SELECT 1 FROM instances i
+            WHERE i.well_kind = 'real' AND i.well_id = w.well_id
+        )
+        """
+    ).fetchone()[0]
+    if orphans:
+        raise WellsKindError(
+            f"wells has {orphans} row(s) whose well_id does not appear in any "
+            f"real-Well instance"
+        )
+
+
+def _validate_wells_id_fk(con: duckdb.DuckDBPyConnection) -> None:
+    """Rule 3: every non-NULL `instances.well_id` exists in `wells`."""
+    orphans = con.execute(
+        """
+        SELECT COUNT(*) FROM instances i
+        LEFT JOIN wells w ON w.well_id = i.well_id
+        WHERE i.well_id IS NOT NULL AND w.well_id IS NULL
+        """
+    ).fetchone()[0]
+    if orphans:
+        raise WellsIdFkError(
+            f"instances has {orphans} row(s) whose well_id is not in wells"
         )

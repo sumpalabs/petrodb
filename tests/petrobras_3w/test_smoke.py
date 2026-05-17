@@ -191,7 +191,24 @@ def test_pipeline_emits_documentation(tmp_path: Path) -> None:
 
     # schema.json reflects exactly the published parquet
     schema_payload = json.loads((out_dir / "schema.json").read_text())
-    assert set(schema_payload["tables"]) == {"event_types", "instances"}
+    assert set(schema_payload["tables"]) == {"event_types", "wells", "instances"}
+    wells_cols = {c["name"] for c in schema_payload["tables"]["wells"]["columns"]}
+    assert wells_cols == {
+        "well_id",
+        "n_instances",
+        "first_ts",
+        "last_ts",
+        "n_observations",
+    }
+    instance_well_fks = [
+        fk
+        for fk in schema_payload["tables"]["instances"]["foreign_keys"]
+        if fk["column"] == "well_id"
+    ]
+    assert any(
+        fk["references_table"] == "wells" and fk["references_column"] == "well_id"
+        for fk in instance_well_fks
+    ), "instances.well_id should declare FK to wells.well_id"
     assert schema_payload["upstream"]["git_tag"] == PIN_GIT_TAG
     assert schema_payload["upstream"]["dataset_version"] == PIN_DATASET_VERSION
     schema_cols = {
@@ -282,9 +299,10 @@ def test_website_integration_is_idempotent(tmp_path: Path) -> None:
         assert f'"petrobras_3w/{artifact}"' in first_index, (
             f"index.html missing link to petrobras_3w/{artifact}"
         )
-    # Both published parquets are surfaced on the static site.
+    # All published parquets are surfaced on the static site.
     assert "petrobras_3w/event_types.parquet" in first_index
     assert "petrobras_3w/instances.parquet" in first_index
+    assert "petrobras_3w/wells.parquet" in first_index
     # Pin metadata is surfaced on the site.
     assert PIN_GIT_TAG in first_index
     assert PIN_DATASET_VERSION in first_index
@@ -384,20 +402,20 @@ def test_pipeline_emits_instances_catalog(tmp_path: Path) -> None:
 
     assert (out_dir / "instances.parquet").exists()
     rows = _read_instances(out_dir)
-    # One row per fixture instance file (5 total: ev 0, 1, 3, 8, 9).
-    assert len(rows) == 5
-    assert [r["event_class"] for r in rows] == [0, 1, 3, 8, 9]
-
     by_id = {r["instance_id"]: r for r in rows}
 
-    # `instance_id` is the upstream filename without `.parquet`.
-    assert set(by_id) == {
-        "WELL-00001_20120101000000",
-        "WELL-00002_20120102000000",
-        "WELL-00003_20120103000000",
-        "SIMULATED_00001",
-        "DRAWN_00001",
+    # Every primary fixture (one per representative event class across the
+    # three well_kinds) lands in the catalog under its expected event class.
+    primary_id_to_event_class = {
+        "WELL-00001_20120101000000": 0,
+        "WELL-00002_20120102000000": 1,
+        "WELL-00003_20120103000000": 3,
+        "SIMULATED_00001": 8,
+        "DRAWN_00001": 9,
     }
+    for instance_id, event_class in primary_id_to_event_class.items():
+        assert instance_id in by_id, f"{instance_id} missing from catalog"
+        assert by_id[instance_id]["event_class"] == event_class
 
 
 def test_instances_well_kind_and_well_id(tmp_path: Path) -> None:
@@ -592,4 +610,179 @@ def test_validator_rejects_row_count_accounting_break(tmp_path: Path) -> None:
         )
 
     with pytest.raises(validator.InstanceRowCountAccountingError):
+        export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+
+
+# ---------------------------------------------------------------------------
+# wells master table (issue #21)
+# ---------------------------------------------------------------------------
+
+
+def _read_wells(out_dir: Path) -> list[dict]:
+    path = out_dir / "wells.parquet"
+    con = duckdb.connect()
+    rows = con.execute(
+        f"SELECT * FROM read_parquet('{path}') ORDER BY well_id"
+    ).fetchall()
+    columns = [
+        c[0]
+        for c in con.execute(
+            f"DESCRIBE SELECT * FROM read_parquet('{path}')"
+        ).fetchall()
+    ]
+    return [dict(zip(columns, row)) for row in rows]
+
+
+def test_pipeline_emits_wells_master(tmp_path: Path) -> None:
+    """`wells.parquet` exists with one row per distinct real well (40 rows
+    per the pinned upstream tag; rule 7).
+    """
+    db_path = tmp_path / "petrobras_3w.duckdb"
+    out_dir = tmp_path / "parquet"
+    staging = _populated_staging(tmp_path)
+
+    dataset_ini = transform_orch.run(db_path=db_path, staging_dir=staging)
+    export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+
+    assert (out_dir / "wells.parquet").exists()
+    rows = _read_wells(out_dir)
+    assert len(rows) == 40
+
+    well_ids = [r["well_id"] for r in rows]
+    # IDs 17 and 18 are absent upstream; all other IDs 1..42 are present.
+    expected_ids = list(range(1, 17)) + list(range(19, 43))
+    assert well_ids == expected_ids
+
+    by_id = {r["well_id"]: r for r in rows}
+    columns = set(rows[0])
+    assert columns == {
+        "well_id",
+        "n_instances",
+        "first_ts",
+        "last_ts",
+        "n_observations",
+    }
+
+    # WELL-00001 has exactly one event-0 fixture with 10 rows.
+    one = by_id[1]
+    assert one["n_instances"] == 1
+    assert one["n_observations"] == 10
+
+    # WELL-00002 has exactly one event-1 fixture with 12 rows.
+    two = by_id[2]
+    assert two["n_instances"] == 1
+    assert two["n_observations"] == 12
+
+    # The padding fixtures contribute exactly 1 row each.
+    forty_two = by_id[42]
+    assert forty_two["n_instances"] == 1
+    assert forty_two["n_observations"] == 1
+
+
+def test_wells_excludes_simulated_and_drawn(tmp_path: Path) -> None:
+    """No `well_id` from a non-real instance appears in `wells.parquet`."""
+    db_path = tmp_path / "petrobras_3w.duckdb"
+    out_dir = tmp_path / "parquet"
+    staging = _populated_staging(tmp_path)
+
+    dataset_ini = transform_orch.run(db_path=db_path, staging_dir=staging)
+    export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+
+    well_ids = {r["well_id"] for r in _read_wells(out_dir)}
+    # `wells.parquet` only has real-Well IDs; the simulated/drawn instances
+    # have NULL well_id and contribute nothing here.
+    assert None not in well_ids
+
+
+def test_wells_aggregates_match_instances(tmp_path: Path) -> None:
+    """`SUM(n_instances)` equals the count of real instances; likewise for
+    `SUM(n_observations)` and the per-Instance `n_rows`.
+    """
+    db_path = tmp_path / "petrobras_3w.duckdb"
+    out_dir = tmp_path / "parquet"
+    staging = _populated_staging(tmp_path)
+
+    dataset_ini = transform_orch.run(db_path=db_path, staging_dir=staging)
+    export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+
+    con = duckdb.connect()
+    real_instance_count, real_row_total = con.execute(
+        f"""
+        SELECT COUNT(*), SUM(n_rows)
+        FROM read_parquet('{out_dir / "instances.parquet"}')
+        WHERE well_kind = 'real'
+        """
+    ).fetchone()
+    wells_instance_total, wells_observation_total = con.execute(
+        f"""
+        SELECT SUM(n_instances), SUM(n_observations)
+        FROM read_parquet('{out_dir / "wells.parquet"}')
+        """
+    ).fetchone()
+    assert wells_instance_total == real_instance_count
+    assert wells_observation_total == real_row_total
+
+
+def test_validator_rejects_well_count_mismatch(tmp_path: Path) -> None:
+    """Rule 7: real-Well rowcount must match the pinned upstream count."""
+    db_path = tmp_path / "petrobras_3w.duckdb"
+    out_dir = tmp_path / "parquet"
+    staging = _populated_staging(tmp_path)
+
+    dataset_ini = transform_orch.run(db_path=db_path, staging_dir=staging)
+
+    with duckdb.connect(str(db_path)) as con:
+        # Drop a well from the wells master to trip rule 7.
+        con.execute("DELETE FROM wells WHERE well_id = 42")
+
+    with pytest.raises(validator.WellsRowCountError):
+        export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+
+    assert not (out_dir / "wells.parquet").exists()
+
+
+def test_validator_rejects_well_id_orphan(tmp_path: Path) -> None:
+    """Rule 3: every non-NULL `instances.well_id` exists in `wells.parquet`."""
+    db_path = tmp_path / "petrobras_3w.duckdb"
+    out_dir = tmp_path / "parquet"
+    staging = _populated_staging(tmp_path)
+
+    dataset_ini = transform_orch.run(db_path=db_path, staging_dir=staging)
+
+    with duckdb.connect(str(db_path)) as con:
+        # Drop the well row but leave the instance pointing at it; this is
+        # exactly the FK violation rule 3 watches for. Also re-pad an extra
+        # well so the total stays at 40 and rule 7 does not trip first.
+        con.execute("DELETE FROM wells WHERE well_id = 1")
+        con.execute(
+            "INSERT INTO wells VALUES "
+            "(9999, 0, TIMESTAMP '2099-01-01', TIMESTAMP '2099-01-01', 0)"
+        )
+
+    with pytest.raises(validator.WellsIdFkError):
+        export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
+
+
+def test_validator_rejects_non_real_well_in_wells(tmp_path: Path) -> None:
+    """Rule 8: `wells.parquet` rows are limited to real `instances.well_id`."""
+    db_path = tmp_path / "petrobras_3w.duckdb"
+    out_dir = tmp_path / "parquet"
+    staging = _populated_staging(tmp_path)
+
+    dataset_ini = transform_orch.run(db_path=db_path, staging_dir=staging)
+
+    with duckdb.connect(str(db_path)) as con:
+        # Replace a real-well row with one whose ID is not the well_id of any
+        # `well_kind = 'real'` instance. Also drop the matching instance so
+        # rule 3 (FK from instances to wells) still passes — rule 8 is what
+        # this test is exercising. Keep the wells rowcount at 40 so rule 7
+        # passes.
+        con.execute("DELETE FROM instances WHERE well_id = 42")
+        con.execute("DELETE FROM wells WHERE well_id = 42")
+        con.execute(
+            "INSERT INTO wells VALUES "
+            "(9999, 0, TIMESTAMP '2099-01-01', TIMESTAMP '2099-01-01', 0)"
+        )
+
+    with pytest.raises(validator.WellsKindError):
         export_orch.run(db_path=db_path, output_dir=out_dir, dataset_ini=dataset_ini)
