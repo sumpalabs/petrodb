@@ -7,8 +7,8 @@ per table, one monthly_production partition) and verify that:
 
 - All four artifacts are written and well-formed.
 - Reflected column lists match the parquet schema (no drift).
-- Spanish-language descriptions and the four-bucket rationale appear
-  in `schema.md`.
+- English column descriptions and the four-bucket rationale appear
+  in `schema.md`; Spanish column identifiers are preserved verbatim.
 - The opaque-code glossary covers `tef` and `vida_util`.
 - Foreign keys, primary keys, and dropped admin columns are documented.
 - The README contains all four canonical query examples (single-well,
@@ -166,14 +166,14 @@ def test_schema_md_covers_all_required_sections(
 ) -> None:
     schema_doc_generator.generate(reader_con, published_tree)
     body = (published_tree / "schema.md").read_text()
-    # Spanish — column-name preservation is the contract
+    # Spanish column identifiers preserved verbatim (the contract)
     assert "idpozo" in body
     assert "cuenca" in body
     # Glossary covers the opaque codes
-    assert "Glosario" in body
+    assert "Glossary" in body
     assert "tef" in body and "vida_util" in body
-    # Four-bucket rationale appears
-    assert "Cuatro buckets" in body or "cuatro tablas" in body.lower()
+    # Four-bucket rationale appears (English)
+    assert "Four buckets" in body or "four tables" in body.lower()
     # Dropped admin/audit columns are listed by name
     for col in ("observaciones", "idusuario", "rectificado", "habilitado"):
         assert col in body
@@ -185,6 +185,32 @@ def test_schema_md_covers_all_required_sections(
         "monthly_production",
     ):
         assert f"`{table}`" in body
+
+
+def test_schema_md_prose_is_english(
+    published_tree: Path, reader_con: duckdb.DuckDBPyConnection
+) -> None:
+    """Section headings and prose must be English, not the previous Spanish."""
+    schema_doc_generator.generate(reader_con, published_tree)
+    body = (published_tree / "schema.md").read_text()
+    # New English headings present
+    assert "Dataset Schema" in body
+    assert "## Tables" in body
+    assert "## Relationships" in body
+    assert "## Dropped columns" in body
+    # Old Spanish headings absent
+    for spanish_heading in (
+        "Esquema del dataset",
+        "Cuatro buckets, cuatro tablas",
+        "Tablas",
+        "Relaciones",
+        "Glosario de códigos",
+        "Columnas eliminadas",
+        "Claves foráneas",
+    ):
+        assert spanish_heading not in body, (
+            f"Spanish heading should be translated: {spanish_heading!r}"
+        )
 
 
 def test_schema_md_documents_every_published_column(
@@ -221,7 +247,7 @@ def test_readme_contains_four_canonical_query_examples(
     assert "_files.json" in body  # manifest reference
 
 
-def test_readme_lists_dropped_admin_columns_and_spanish_note(
+def test_readme_lists_dropped_admin_columns_and_identifier_note(
     published_tree: Path, reader_con: duckdb.DuckDBPyConnection
 ) -> None:
     schema_doc_generator.generate(reader_con, published_tree)
@@ -236,7 +262,34 @@ def test_readme_lists_dropped_admin_columns_and_spanish_note(
         "geojson",
     ):
         assert col in body, f"dropped column {col} not noted in README"
-    assert "español" in body.lower() or "spanish" in body.lower()
+    # The README must call out that column identifiers stay Spanish (the
+    # explicit contract from issue #13), with the prose itself in English.
+    assert "Spanish" in body
+
+
+def test_readme_prose_is_english(
+    published_tree: Path, reader_con: duckdb.DuckDBPyConnection
+) -> None:
+    """The README's section headings and prose must be English."""
+    schema_doc_generator.generate(reader_con, published_tree)
+    body = (published_tree / "README.md").read_text()
+    # New English headings
+    assert "## Published files" in body
+    assert "## Dropped columns" in body
+    assert "## Full schema" in body
+    # Old Spanish headings absent
+    for spanish_heading in (
+        "## Archivos publicados",
+        "## Columnas eliminadas",
+        "## Acceso vía DuckDB",
+        "## Esquema completo",
+        "Pozo único",
+        "Rango de años",
+        "Agregado por cuenca",
+    ):
+        assert spanish_heading not in body, (
+            f"Spanish heading should be translated: {spanish_heading!r}"
+        )
 
 
 def test_schema_sql_executes_against_fresh_duckdb(

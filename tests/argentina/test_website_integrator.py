@@ -156,6 +156,27 @@ def test_integrate_adds_argentina_tab_content_to_index_html(
         assert f'"{artifact}"' in body, f"missing link to {artifact}"
 
 
+def test_integrate_argentina_tab_carries_source_attribution(
+    website_root: Path,
+) -> None:
+    """The Argentina tab content must include a per-dataset attribution
+    block — the global footer no longer carries Argentina source info."""
+    website_integrator.integrate(website_root, _YEARS)
+    body = (website_root / "parquet" / "index.html").read_text()
+
+    arg_open = body.index('id="argentina-tab"')
+    arg_close_marker = website_integrator.INDEX_TAB_CONTENT_END
+    arg_close = body.index(arg_close_marker)
+
+    block = body[arg_open:arg_close]
+    assert 'class="dataset-attribution"' in block
+    # Canonical landing page on datos.energia.gob.ar
+    assert "datos.energia.gob.ar/dataset/produccion-de-petroleo-y-gas-por-pozo" in block
+    # License is the portal-declared CC BY 4.0
+    assert "creativecommons.org/licenses/by/4.0" in block
+    assert "Secretar" in block  # Secretaría de Energía
+
+
 def test_integrate_renders_per_year_download_buttons(website_root: Path) -> None:
     """Each year in the manifest gets a direct-download button with a
     custom `download` filename so files don't collide as `data.parquet`
@@ -167,9 +188,9 @@ def test_integrate_renders_per_year_download_buttons(website_root: Path) -> None
         assert (
             f'href="argentina/monthly_production/anio={year}/data.parquet"' in body
         ), f"missing per-year href for {year}"
-        assert (
-            f'download="monthly_production_{year}.parquet"' in body
-        ), f"missing custom download filename for {year}"
+        assert f'download="monthly_production_{year}.parquet"' in body, (
+            f"missing custom download filename for {year}"
+        )
     # The collapsible wraps them.
     assert "<details" in body and "</details>" in body
 

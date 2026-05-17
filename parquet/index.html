@@ -35,6 +35,33 @@
             color: var(--text-primary);
             line-height: 1.6;
             overflow-x: hidden;
+            padding-bottom: 48px;
+        }
+
+        /* Sticky author-credit bar — pinned to viewport bottom on every tab */
+        .site-credit {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--petroleum-blue);
+            border-top: 1px solid var(--slate-blue);
+            color: var(--steel-gray);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.85rem;
+            text-align: center;
+            padding: 12px 16px;
+            z-index: 100;
+        }
+
+        .site-credit a {
+            color: var(--amber-accent);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .site-credit a:hover {
+            color: var(--amber-bright);
         }
 
         /* Animated background grid */
@@ -640,6 +667,43 @@
             color: var(--amber-bright);
         }
 
+        /* Per-dataset source + license block (lives inside each tab content) */
+        .dataset-attribution {
+            background: linear-gradient(135deg, var(--petroleum-blue) 0%, var(--slate-blue) 100%);
+            border: 1px solid rgba(139, 155, 179, 0.2);
+            border-radius: 12px;
+            padding: 24px 32px;
+            margin-top: 60px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.7;
+        }
+
+        .dataset-attribution h2 {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            color: var(--amber-accent);
+        }
+
+        .dataset-attribution p {
+            margin: 0;
+        }
+
+        .dataset-attribution p + p {
+            margin-top: 6px;
+        }
+
+        .dataset-attribution a {
+            color: var(--amber-accent);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .dataset-attribution a:hover {
+            color: var(--amber-bright);
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .container {
@@ -692,6 +756,11 @@
 
             .well-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .site-credit {
+                font-size: 0.78rem;
+                padding: 10px 12px;
             }
         }
     </style>
@@ -879,6 +948,19 @@ result = con.<span class="function">execute</span>(<span class="string">"""
                         </div>
                     </div>
                 </div>
+            </section>
+
+            <!-- Source & License -->
+            <section class="dataset-attribution">
+                <h2>Source &amp; License</h2>
+                <p>
+                    Data from the <a href="https://www.equinor.com/energy/volve-data-sharing" target="_blank" rel="noopener">Equinor Volve Data Village</a> — Norway's first fully disclosed oil field dataset.
+                </p>
+                <p>
+                    Licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a>
+                    ·
+                    <a href="https://www.equinor.com/content/dam/statoil/documents/what-we-do/Equinor-HRS-Terms-and-conditions-for-licence-to-data-Volve.pdf" target="_blank" rel="noopener">Equinor official terms</a>
+                </p>
             </section>
         </div>
 
@@ -1651,6 +1733,17 @@ multi_well = con.<span class="function">execute</span>(<span class="string">"""
                     </div>
                 </div>
             </section>
+
+            <!-- Source & License -->
+            <section class="dataset-attribution">
+                <h2>Source &amp; License</h2>
+                <p>
+                    Well log data from the <a href="https://xeek.ai/challenges/force-well-logs" target="_blank" rel="noopener">FORCE 2020 Machine Learning Competition</a> (hosted on Xeek, now ThinkOnward), released for the lithofacies prediction challenge by FORCE and the Norwegian Petroleum Directorate (NPD).
+                </p>
+                <p>
+                    License terms for the underlying well logs are published on the competition page. The competition required participant prediction submissions to be released under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.
+                </p>
+            </section>
         </div>
 
 <!-- argentina-tab-content:begin -->
@@ -1868,7 +1961,7 @@ result = duckdb.<span class="function">sql</span>(<span class="string">"""
                     </div>
                     <div class="table-card">
                         <h3 class="table-name">schema.md</h3>
-                        <p class="table-meta">Spanish-language column docs, four-bucket rationale, glossary</p>
+                        <p class="table-meta">English column docs (Spanish identifiers preserved), four-bucket rationale, glossary</p>
                         <div class="foreign-key-note">
                             → <a href="argentina/schema.md">Open schema.md</a>
                         </div>
@@ -1889,20 +1982,37 @@ result = duckdb.<span class="function">sql</span>(<span class="string">"""
                     </div>
                 </div>
             </section>
+
+            <!-- Source & License -->
+            <section class="dataset-attribution">
+                <h2>Source &amp; License</h2>
+                <p>
+                    Data from <a href="https://datos.energia.gob.ar/dataset/produccion-de-petroleo-y-gas-por-pozo" target="_blank" rel="noopener">Producción de petróleo y gas por pozo (Capítulo IV)</a>,
+                    published by the <strong>Secretaría de Energía</strong> on the Argentine open data portal (<a href="https://datos.energia.gob.ar/" target="_blank" rel="noopener">datos.energia.gob.ar</a>).
+                </p>
+                <p>
+                    All three source CSVs (<code>produccin-de-pozos-de-gas-y-petrleo-*</code>, <code>capitulo-iv-pozos</code>, <code>listado-de-pozos-cargados-por-empresas-operadoras</code>) are resources of this same dataset package.
+                </p>
+                <p>
+                    Licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">Creative Commons Attribution 4.0</a> (as declared on the dataset's portal page).
+                </p>
+            </section>
         </div>
 
 <!-- argentina-tab-content:end -->
 
         <footer>
             <p>
-                PetroData Repository · Data from <a href="https://www.equinor.com/energy/volve-data-sharing" target="_blank" rel="noopener">Equinor Volve Data Village</a>
-                and <a href="https://xeek.ai/challenges/force-well-logs" target="_blank" rel="noopener">FORCE 2020 ML Competition</a>
+                PetroData Repository · Open petroleum datasets in Parquet format
             </p>
             <p style="margin-top: 8px; font-size: 0.85rem;">
-                Volve licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a> ·
-                <a href="https://www.equinor.com/content/dam/statoil/documents/what-we-do/Equinor-HRS-Terms-and-conditions-for-licence-to-data-Volve.pdf" target="_blank" rel="noopener">Official License Terms</a>
+                Per-dataset source &amp; license details appear in each dataset's section above.
             </p>
         </footer>
+    </div>
+
+    <div class="site-credit">
+        Made with ❤️ by <a href="https://ocortez.com" target="_blank" rel="noopener">Oscar Cortez</a>
     </div>
 
     <script>

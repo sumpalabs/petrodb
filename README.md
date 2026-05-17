@@ -47,8 +47,8 @@ result = duckdb.sql("""
 """).df()
 ```
 
-Full per-column docs (Spanish), the four-bucket rationale, and three more
-canonical query patterns live in
+Full per-column English docs (Spanish column identifiers preserved), the
+four-bucket rationale, and three more canonical query patterns live in
 [`parquet/argentina/README.md`](parquet/argentina/README.md).
 
 <!-- argentina:end -->

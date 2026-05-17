@@ -102,8 +102,8 @@ result = duckdb.sql(\"\"\"
 \"\"\").df()
 ```
 
-Full per-column docs (Spanish), the four-bucket rationale, and three more
-canonical query patterns live in
+Full per-column English docs (Spanish column identifiers preserved), the
+four-bucket rationale, and three more canonical query patterns live in
 [`parquet/argentina/README.md`](parquet/argentina/README.md).
 
 """
@@ -139,14 +139,12 @@ def _index_tab_content_payload(years: list[int]) -> str:
     year_buttons = "\n".join(
         f'                        <a href="argentina/monthly_production/anio={y}/data.parquet"'
         f' download="monthly_production_{y}.parquet" class="download-button">\n'
-        f'                            <span>{y}</span>\n'
+        f"                            <span>{y}</span>\n"
         f'                            <span class="download-icon">⬇</span>\n'
-        f'                        </a>'
+        f"                        </a>"
         for y in years
     )
-    year_range = (
-        f"{years[0]}–{years[-1]}" if years else "2006–present"
-    )
+    year_range = f"{years[0]}–{years[-1]}" if years else "2006–present"
     return f"""\
         <!-- Argentina Tab Content -->
         <div id="argentina-tab" class="tab-content">
@@ -283,7 +281,7 @@ result = duckdb.<span class="function">sql</span>(<span class="string">\"\"\"
                     </div>
                     <div class="table-card">
                         <h3 class="table-name">schema.md</h3>
-                        <p class="table-meta">Spanish-language column docs, four-bucket rationale, glossary</p>
+                        <p class="table-meta">English column docs (Spanish identifiers preserved), four-bucket rationale, glossary</p>
                         <div class="foreign-key-note">
                             → <a href="argentina/schema.md">Open schema.md</a>
                         </div>
@@ -303,6 +301,21 @@ result = duckdb.<span class="function">sql</span>(<span class="string">\"\"\"
                         </div>
                     </div>
                 </div>
+            </section>
+
+            <!-- Source & License -->
+            <section class="dataset-attribution">
+                <h2>Source &amp; License</h2>
+                <p>
+                    Data from <a href="https://datos.energia.gob.ar/dataset/produccion-de-petroleo-y-gas-por-pozo" target="_blank" rel="noopener">Producción de petróleo y gas por pozo (Capítulo IV)</a>,
+                    published by the <strong>Secretaría de Energía</strong> on the Argentine open data portal (<a href="https://datos.energia.gob.ar/" target="_blank" rel="noopener">datos.energia.gob.ar</a>).
+                </p>
+                <p>
+                    All three source CSVs (<code>produccin-de-pozos-de-gas-y-petrleo-*</code>, <code>capitulo-iv-pozos</code>, <code>listado-de-pozos-cargados-por-empresas-operadoras</code>) are resources of this same dataset package.
+                </p>
+                <p>
+                    Licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">Creative Commons Attribution 4.0</a> (as declared on the dataset's portal page).
+                </p>
             </section>
         </div>
 

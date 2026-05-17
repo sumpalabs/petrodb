@@ -1,90 +1,90 @@
-# Argentina — Esquema del dataset
+# Argentina — Dataset Schema
 
-Producción de pozos de gas y petróleo de Argentina, organizada en cuatro tablas según volatilidad por `idpozo`. Los nombres de columnas se preservan en español tal como los publica la fuente.
+Monthly oil and gas well production for Argentina, organised into four tables by per-`idpozo` volatility. Column identifiers are preserved in Spanish exactly as the source publishes them; all explanatory prose below is in English.
 
-## Cuatro buckets, cuatro tablas
+## Four buckets, four tables
 
-El esquema separa por **frecuencia de cambio** dentro de cada `idpozo`: atributos estáticos, metadatos lentamente variables, eventos y series temporales numéricas. Esto evita redundancia en las ~17,6 M filas mensuales.
+The schema splits by **change frequency** within each `idpozo`: static attributes, slowly-changing metadata, events, and a numeric time series. This avoids redundancy across the ~17.6 M monthly rows.
 
-| Tabla | Bucket | Granularidad |
-|-------|--------|--------------|
-| `wells` | Maestro estático (< 0,3 % de pozos cambian) | 1 fila por `idpozo` |
-| `well_operator_history` | Metadatos slowly-changing (~67 % cambian) | 1 fila por corrida de operador |
-| `well_events` | Eventos de estado (~74 % cambian `tipoestado`) | 1 fila por mes-transición |
-| `monthly_production` | Serie mensual numérica | 1 fila por `(idpozo, fecha)` |
+| Table | Bucket | Grain |
+|-------|--------|-------|
+| `wells` | Static master (< 0.3 % of wells change) | 1 row per `idpozo` |
+| `well_operator_history` | Slowly-changing metadata (~67 % change) | 1 row per operator run |
+| `well_events` | State events (~74 % change `tipoestado`) | 1 row per transition month |
+| `monthly_production` | Monthly numeric series | 1 row per `(idpozo, fecha)` |
 
-## Tablas
+## Tables
 
 ### `wells`
 
-Tabla maestra estática de pozos. Una fila por `idpozo` (~85.418 pozos, incluidos ~113 huérfanos en `capitulo-iv` marcados con `has_production = false`).
+Static well master. One row per `idpozo` (~85,418 wells, including ~113 orphans from `capitulo-iv` flagged with `has_production = false`).
 
-**Columnas:**
+**Columns:**
 
-| Columna | Tipo | Nullable | PK | Descripción |
-|---------|------|----------|----|-------------|
-| `idpozo` | BIGINT | No | ✓ | Identificador entero del pozo (wellbore × formación productiva). Clave primaria del modelo. |
-| `sigla` | VARCHAR | Sí |  | Código humano del pozo (p. ej. `YPF.BLO.x-8`). Tratado como etiqueta, posiblemente mutable; no es PK. |
-| `formprod` | VARCHAR | Sí |  | Formación productiva del pozo. Atributo estático del `idpozo` (codificado en el ID). |
-| `codigopropio` | VARCHAR | Sí |  | Código interno asignado por la operadora en el padrón `listado`. |
-| `nombrepropio` | VARCHAR | Sí |  | Nombre interno asignado por la operadora en el padrón `listado`. |
-| `area` | VARCHAR | Sí |  | Área de permiso o concesión donde se ubica el pozo. |
-| `cod_area` | VARCHAR | Sí |  | Código del área de permiso/concesión. |
-| `yacimiento` | VARCHAR | Sí |  | Área de yacimiento donde se ubica el pozo. |
-| `cod_yacimiento` | VARCHAR | Sí |  | Código del área de yacimiento. |
-| `cuenca` | VARCHAR | Sí |  | Cuenca sedimentaria. |
-| `provincia` | VARCHAR | Sí |  | Provincia argentina donde se ubica el pozo. |
-| `idcuenca` | VARCHAR | Sí |  | Código de la cuenca. |
-| `idprovincia` | VARCHAR | Sí |  | Código de la provincia. |
-| `formacion` | VARCHAR | Sí |  | Formación geológica reportada. |
-| `cota` | DOUBLE | Sí |  | Cota del terreno (m s.n.m.). |
-| `profundidad` | DOUBLE | Sí |  | Profundidad final del pozo (m). |
-| `clasificacion` | VARCHAR | Sí |  | Clasificación regulatoria del pozo (p. ej. `Petrolífero`, `Gasífero`). |
-| `subclasificacion` | VARCHAR | Sí |  | Subclasificación regulatoria. |
-| `tipo_recurso` | VARCHAR | Sí |  | Tipo de recurso (p. ej. `Convencional`, `No Convencional`). |
-| `sub_tipo_recurso` | VARCHAR | Sí |  | Subtipo de recurso (p. ej. `Shale`, `Tight`). |
-| `gasplus` | VARCHAR | Sí |  | Indicador del programa Gas Plus (capítulo IV). |
-| `proyecto` | VARCHAR | Sí |  | Proyecto al que pertenece el pozo (campo de la fuente de producción). |
-| `empresa` | VARCHAR | Sí |  | Operador asociado a la corrida (en `wells`: operador inicial del registro capítulo IV; en `well_operator_history`: nombre desplegado del intervalo). |
-| `coordenadax` | DOUBLE | Sí |  | Coordenada X del pozo (sistema reportado en el padrón `listado`). |
-| `coordenaday` | DOUBLE | Sí |  | Coordenada Y del pozo (sistema reportado en el padrón `listado`). |
-| `geom` | BLOB | Sí |  | Geometría del pozo en formato WKB (BLOB). Decodificable con `ST_GeomFromWKB(geom)` (extensión `spatial`). |
-| `adjiv_fecha_inicio_perf` | DATE | Sí |  | Fecha de inicio de perforación (capítulo IV). |
-| `adjiv_fecha_fin_perf` | DATE | Sí |  | Fecha de fin de perforación (capítulo IV). |
-| `adjiv_fecha_inicio_term` | DATE | Sí |  | Fecha de inicio de terminación (capítulo IV). |
-| `adjiv_fecha_fin_term` | DATE | Sí |  | Fecha de fin de terminación (capítulo IV). |
-| `adjiv_fecha_inicio` | DATE | Sí |  | Fecha de inicio reportada en el padrón `listado`. |
-| `adjiv_fecha_fin` | DATE | Sí |  | Fecha de fin reportada en el padrón `listado`. |
-| `adjiv_fecha_abandono` | DATE | Sí |  | Fecha de abandono del pozo, si aplica. |
-| `adjiv_equipo_utilizar` | VARCHAR | Sí |  | Equipo de perforación utilizado. |
-| `adjiv_capacidad_perf` | DOUBLE | Sí |  | Capacidad de perforación del equipo. |
-| `pet_inicial` | DOUBLE | Sí |  | Caudal inicial de petróleo en el ensayo de descubrimiento (m³/d). |
-| `gas_inicial` | DOUBLE | Sí |  | Caudal inicial de gas en el ensayo de descubrimiento (Mm³/d). |
-| `agua_inicial` | DOUBLE | Sí |  | Caudal inicial de agua en el ensayo de descubrimiento (m³/d). |
-| `iny_agua_inicial` | DOUBLE | Sí |  | Inyección inicial de agua reportada en el ensayo (m³/d). |
-| `iny_gas_inicial` | DOUBLE | Sí |  | Inyección inicial de gas reportada en el ensayo (Mm³/d). |
-| `iny_otros_inicial` | DOUBLE | Sí |  | Inyección inicial de otros fluidos reportada en el ensayo. |
-| `iny_co2_inicial` | DOUBLE | Sí |  | Inyección inicial de CO₂ reportada en el ensayo. |
-| `vida_util_inicial` | DOUBLE | Sí |  | Vida útil estimada al momento del ensayo inicial (meses). |
-| `has_production` | BOOLEAN | Sí |  | `true` si el `idpozo` aparece alguna vez en producción mensual; `false` para los pozos huérfanos del capítulo IV que nunca produjeron. |
+| Column | Type | Nullable | PK | Description |
+|--------|------|----------|----|-------------|
+| `idpozo` | BIGINT | No | ✓ | Integer well identifier (wellbore × producing formation). Primary key of the model. |
+| `sigla` | VARCHAR | Yes |  | Human-readable well code (e.g. `YPF.BLO.x-8`). Treated as a label, possibly mutable; not the PK. |
+| `formprod` | VARCHAR | Yes |  | Producing formation of the well. Static attribute of `idpozo` (encoded in the ID). |
+| `codigopropio` | VARCHAR | Yes |  | Internal code assigned by the operator in the `listado` registry. |
+| `nombrepropio` | VARCHAR | Yes |  | Internal name assigned by the operator in the `listado` registry. |
+| `area` | VARCHAR | Yes |  | Permit or concession area where the well is located. |
+| `cod_area` | VARCHAR | Yes |  | Code of the permit/concession area. |
+| `yacimiento` | VARCHAR | Yes |  | Field (yacimiento) where the well is located. |
+| `cod_yacimiento` | VARCHAR | Yes |  | Code of the field (yacimiento). |
+| `cuenca` | VARCHAR | Yes |  | Sedimentary basin. |
+| `provincia` | VARCHAR | Yes |  | Argentine province where the well is located. |
+| `idcuenca` | VARCHAR | Yes |  | Basin code. |
+| `idprovincia` | VARCHAR | Yes |  | Province code. |
+| `formacion` | VARCHAR | Yes |  | Geological formation reported for the well. |
+| `cota` | DOUBLE | Yes |  | Surface elevation (m above sea level). |
+| `profundidad` | DOUBLE | Yes |  | Final well depth (m). |
+| `clasificacion` | VARCHAR | Yes |  | Regulatory well classification (e.g. `Petrolífero`, `Gasífero`). |
+| `subclasificacion` | VARCHAR | Yes |  | Regulatory sub-classification. |
+| `tipo_recurso` | VARCHAR | Yes |  | Resource type (e.g. `Convencional`, `No Convencional`). |
+| `sub_tipo_recurso` | VARCHAR | Yes |  | Resource subtype (e.g. `Shale`, `Tight`). |
+| `gasplus` | VARCHAR | Yes |  | Gas Plus programme indicator (capítulo IV source). |
+| `proyecto` | VARCHAR | Yes |  | Project the well belongs to (carried over from the production source). |
+| `empresa` | VARCHAR | Yes |  | Operator associated with the run (in `wells`: initial operator from the capítulo IV record; in `well_operator_history`: display name of the interval). |
+| `coordenadax` | DOUBLE | Yes |  | Well X coordinate (in the system reported by the `listado` registry). |
+| `coordenaday` | DOUBLE | Yes |  | Well Y coordinate (in the system reported by the `listado` registry). |
+| `geom` | BLOB | Yes |  | Well geometry as WKB (BLOB). Decodable with `ST_GeomFromWKB(geom)` (the `spatial` extension). |
+| `adjiv_fecha_inicio_perf` | DATE | Yes |  | Drilling start date (capítulo IV). |
+| `adjiv_fecha_fin_perf` | DATE | Yes |  | Drilling end date (capítulo IV). |
+| `adjiv_fecha_inicio_term` | DATE | Yes |  | Completion start date (capítulo IV). |
+| `adjiv_fecha_fin_term` | DATE | Yes |  | Completion end date (capítulo IV). |
+| `adjiv_fecha_inicio` | DATE | Yes |  | Start date reported in the `listado` registry. |
+| `adjiv_fecha_fin` | DATE | Yes |  | End date reported in the `listado` registry. |
+| `adjiv_fecha_abandono` | DATE | Yes |  | Well abandonment date, if applicable. |
+| `adjiv_equipo_utilizar` | VARCHAR | Yes |  | Drilling rig used. |
+| `adjiv_capacidad_perf` | DOUBLE | Yes |  | Drilling capacity of the rig. |
+| `pet_inicial` | DOUBLE | Yes |  | Initial oil rate from the discovery test (m³/d). |
+| `gas_inicial` | DOUBLE | Yes |  | Initial gas rate from the discovery test (Mm³/d). |
+| `agua_inicial` | DOUBLE | Yes |  | Initial water rate from the discovery test (m³/d). |
+| `iny_agua_inicial` | DOUBLE | Yes |  | Initial water injection reported in the test (m³/d). |
+| `iny_gas_inicial` | DOUBLE | Yes |  | Initial gas injection reported in the test (Mm³/d). |
+| `iny_otros_inicial` | DOUBLE | Yes |  | Initial injection of other fluids reported in the test. |
+| `iny_co2_inicial` | DOUBLE | Yes |  | Initial CO₂ injection reported in the test. |
+| `vida_util_inicial` | DOUBLE | Yes |  | Estimated useful life at the time of the initial test (months). |
+| `has_production` | BOOLEAN | Yes |  | `true` if the `idpozo` ever appears in monthly production; `false` for capítulo IV orphan wells that never produced. |
 
 ---
 
 ### `well_operator_history`
 
-Histórico de operadores por pozo (slowly-changing dimension). Una fila por corrida contigua de `idempresa` por `idpozo`. Las corridas con `idempresa` NULL se preservan tal cual: la ausencia de operador es información de la fuente.
+Operator history per well (slowly-changing dimension). One row per contiguous run of `idempresa` per `idpozo`. Runs with a NULL `idempresa` are preserved as-is: the absence of an operator is information carried by the source.
 
-**Columnas:**
+**Columns:**
 
-| Columna | Tipo | Nullable | PK | Descripción |
-|---------|------|----------|----|-------------|
-| `idpozo` | BIGINT | No | ✓ | Identificador entero del pozo (wellbore × formación productiva). Clave primaria del modelo. |
-| `idempresa` | VARCHAR | Sí |  | Código alfanumérico de la operadora (`Z001`, `APEA`, …). Almacenado como VARCHAR. |
-| `empresa` | VARCHAR | Sí |  | Operador asociado a la corrida (en `wells`: operador inicial del registro capítulo IV; en `well_operator_history`: nombre desplegado del intervalo). |
-| `valid_from` | DATE | No | ✓ | Primer mes de la corrida contigua de operador (DATE, primero de mes, inclusive). |
-| `valid_to` | DATE | Sí |  | Último mes de la corrida contigua de operador (DATE, primero de mes, inclusive). |
+| Column | Type | Nullable | PK | Description |
+|--------|------|----------|----|-------------|
+| `idpozo` | BIGINT | No | ✓ | Integer well identifier (wellbore × producing formation). Primary key of the model. |
+| `idempresa` | VARCHAR | Yes |  | Alphanumeric operator code (`Z001`, `APEA`, …). Stored as VARCHAR. |
+| `empresa` | VARCHAR | Yes |  | Operator associated with the run (in `wells`: initial operator from the capítulo IV record; in `well_operator_history`: display name of the interval). |
+| `valid_from` | DATE | No | ✓ | First month of the contiguous operator run (DATE, first of month, inclusive). |
+| `valid_to` | DATE | Yes |  | Last month of the contiguous operator run (DATE, first of month, inclusive). |
 
-**Claves foráneas:**
+**Foreign keys:**
 
 - `idpozo` → `wells.idpozo`
 
@@ -92,19 +92,19 @@ Histórico de operadores por pozo (slowly-changing dimension). Una fila por corr
 
 ### `well_events`
 
-Eventos de estado operacional. Una fila por mes en el que cualquiera de `(tipoestado, tipoextraccion, tipopozo)` cambió. Se incluye la fila inicial de cada pozo como transición a su estado de partida; los flips de un solo mes no se suavizan.
+Operational state events. One row per month in which any of `(tipoestado, tipoextraccion, tipopozo)` changed. The first row of every well is included as the transition into its starting state; single-month flips are not smoothed.
 
-**Columnas:**
+**Columns:**
 
-| Columna | Tipo | Nullable | PK | Descripción |
-|---------|------|----------|----|-------------|
-| `idpozo` | BIGINT | No | ✓ | Identificador entero del pozo (wellbore × formación productiva). Clave primaria del modelo. |
-| `event_date` | DATE | No | ✓ | Mes del snapshot de estado operacional (DATE, primero de mes). |
-| `tipoestado` | VARCHAR | Sí |  | Estado operacional del pozo (p. ej. `Extracción Efectiva`, `Parado Transitoriamente`). |
-| `tipoextraccion` | VARCHAR | Sí |  | Método de extracción (p. ej. `Bombeo Mecánico`, `Surgente`). |
-| `tipopozo` | VARCHAR | Sí |  | Tipo de pozo en función del fluido (p. ej. `Petrolífero`, `Gasífero`, `Inyector`). |
+| Column | Type | Nullable | PK | Description |
+|--------|------|----------|----|-------------|
+| `idpozo` | BIGINT | No | ✓ | Integer well identifier (wellbore × producing formation). Primary key of the model. |
+| `event_date` | DATE | No | ✓ | Month of the operational-state snapshot (DATE, first of month). |
+| `tipoestado` | VARCHAR | Yes |  | Operational state of the well (e.g. `Extracción Efectiva`, `Parado Transitoriamente`). |
+| `tipoextraccion` | VARCHAR | Yes |  | Extraction method (e.g. `Bombeo Mecánico`, `Surgente`). |
+| `tipopozo` | VARCHAR | Yes |  | Well type by fluid (e.g. `Petrolífero`, `Gasífero`, `Inyector`). |
 
-**Claves foráneas:**
+**Foreign keys:**
 
 - `idpozo` → `wells.idpozo`
 
@@ -112,31 +112,31 @@ Eventos de estado operacional. Una fila por mes en el que cualquiera de `(tipoes
 
 ### `monthly_production`
 
-Serie mensual de medidas numéricas. Una fila por `(idpozo, fecha)` para cada mes en `[primera_fila, última_fila]` por pozo (los huecos se rellenan con medidas NULL). Particionada por `anio` vía Hive (`monthly_production/anio=YYYY/data.parquet`) y ordenada internamente por `(idpozo, fecha)` para que las estadísticas de row-group permitan podar consultas single-well sobre `httpfs`.
+Monthly time series of numeric measurements. One row per `(idpozo, fecha)` for every month in `[first_row, last_row]` per well (gaps are filled with NULL measurements). Hive-partitioned by `anio` (`monthly_production/anio=YYYY/data.parquet`) and internally sorted by `(idpozo, fecha)` so row-group statistics let single-well queries over `httpfs` prune.
 
-**Columnas:**
+**Columns:**
 
-| Columna | Tipo | Nullable | PK | Descripción |
-|---------|------|----------|----|-------------|
-| `idpozo` | BIGINT | No | ✓ | Identificador entero del pozo (wellbore × formación productiva). Clave primaria del modelo. |
-| `fecha` | DATE | No | ✓ | Mes de la medida (DATE, primer día del mes, derivado de `anio`/`mes` de la fuente). |
-| `prod_pet` | DOUBLE | Sí |  | Producción mensual de petróleo (m³). |
-| `prod_gas` | DOUBLE | Sí |  | Producción mensual de gas (Mm³). |
-| `prod_agua` | DOUBLE | Sí |  | Producción mensual de agua (m³). |
-| `iny_agua` | DOUBLE | Sí |  | Inyección mensual de agua (m³). |
-| `iny_gas` | DOUBLE | Sí |  | Inyección mensual de gas (Mm³). |
-| `iny_co2` | DOUBLE | Sí |  | Inyección mensual de CO₂. |
-| `iny_otro` | DOUBLE | Sí |  | Inyección mensual de otros fluidos. |
-| `tef` | DOUBLE | Sí |  | Tiempo Efectivo de Producción del mes (horas). |
-| `vida_util` | DOUBLE | Sí |  | Vida útil declarada del pozo en el mes (meses). |
+| Column | Type | Nullable | PK | Description |
+|--------|------|----------|----|-------------|
+| `idpozo` | BIGINT | No | ✓ | Integer well identifier (wellbore × producing formation). Primary key of the model. |
+| `fecha` | DATE | No | ✓ | Measurement month (DATE, first day of month, derived from the source's `anio`/`mes`). |
+| `prod_pet` | DOUBLE | Yes |  | Monthly oil production (m³). |
+| `prod_gas` | DOUBLE | Yes |  | Monthly gas production (Mm³). |
+| `prod_agua` | DOUBLE | Yes |  | Monthly water production (m³). |
+| `iny_agua` | DOUBLE | Yes |  | Monthly water injection (m³). |
+| `iny_gas` | DOUBLE | Yes |  | Monthly gas injection (Mm³). |
+| `iny_co2` | DOUBLE | Yes |  | Monthly CO₂ injection. |
+| `iny_otro` | DOUBLE | Yes |  | Monthly injection of other fluids. |
+| `tef` | DOUBLE | Yes |  | Effective production time for the month — *Tiempo Efectivo de Producción* (hours). |
+| `vida_util` | DOUBLE | Yes |  | Declared useful life of the well in the month — *vida útil* (months). |
 
-**Claves foráneas:**
+**Foreign keys:**
 
 - `idpozo` → `wells.idpozo`
 
 ---
 
-## Relaciones
+## Relationships
 
 ```
 well_operator_history.idpozo → wells.idpozo
@@ -144,22 +144,22 @@ well_events.idpozo → wells.idpozo
 monthly_production.idpozo → wells.idpozo
 ```
 
-## Glosario de códigos
+## Glossary of source codes
 
-Algunas siglas heredadas de la fuente no son evidentes a primera vista:
+Some abbreviations inherited from the source are not obvious at first glance:
 
-| Código | Significado |
-|--------|-------------|
-| `tef` | Tiempo Efectivo de Producción del mes (horas). |
-| `vida_util` | Vida útil declarada del pozo en el mes (meses). |
-| `formprod` | Formación productiva del `idpozo`. Atributo estático. |
-| `idpozo` | Identidad canónica: wellbore × formación productiva. PK del modelo. |
-| `sigla` | Código humano del pozo. Etiqueta, posiblemente mutable, no PK. |
-| `idempresa` | Código alfanumérico de la operadora. **VARCHAR**, no INTEGER. |
+| Code | Meaning |
+|------|---------|
+| `tef` | Effective production time for the month — *Tiempo Efectivo de Producción* (hours). |
+| `vida_util` | Declared useful life of the well in the month — *vida útil* (months). |
+| `formprod` | Producing formation of the `idpozo`. Static attribute. |
+| `idpozo` | Canonical identity: wellbore × producing formation. Primary key of the model. |
+| `sigla` | Human-readable well code. Label, possibly mutable, not the PK. |
+| `idempresa` | Alphanumeric operator code. **VARCHAR**, not INTEGER. |
 
-## Columnas eliminadas
+## Dropped columns
 
-Las siguientes columnas de la fuente son administrativas/de auditoría y no se publican:
+The following source columns are administrative/audit fields and are not published:
 
 - `geojson`
 - `observaciones`

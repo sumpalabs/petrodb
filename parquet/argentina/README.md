@@ -1,29 +1,29 @@
 # Argentina Production Dataset
 
-Producción mensual de pozos de gas y petróleo de Argentina (2006–presente), publicada en cuatro tablas Parquet con nombres de columnas en español.
+Monthly oil and gas well production for Argentina (2006–present), published as four Parquet tables. Column identifiers are preserved in Spanish exactly as the source publishes them; all documentation below is in English.
 
-## Archivos publicados
+## Published files
 
 ```
 argentina/
-├── wells.parquet                   # 1 fila por idpozo (~85.418)
-├── well_operator_history.parquet   # 1 fila por corrida de operador
-├── well_events.parquet             # 1 fila por mes-transición de estado
+├── wells.parquet                   # 1 row per idpozo (~85,418)
+├── well_operator_history.parquet   # 1 row per operator run
+├── well_events.parquet             # 1 row per state-transition month
 ├── monthly_production/
 │   ├── anio=2006/data.parquet
 │   ├── anio=2007/data.parquet
 │   ├── ...
-│   └── _files.json                 # manifiesto de particiones
+│   └── _files.json                 # partition manifest
 ├── schema.md
 ├── schema.json
 └── schema.sql
 ```
 
-Los nombres de columnas se preservan en español tal como los publica la fuente (`idpozo`, `cuenca`, `sigla`, `formprod`, `prod_pet`, …). El glosario de códigos opacos como `tef` o `vida_util` vive en `schema.md`.
+Column identifiers are preserved verbatim in their source Spanish (`idpozo`, `cuenca`, `sigla`, `formprod`, `prod_pet`, …). The glossary of opaque codes such as `tef` and `vida_util` lives in `schema.md`.
 
-## Columnas eliminadas
+## Dropped columns
 
-Estas columnas de la fuente son administrativas/de auditoría y **no se publican**:
+These source columns are administrative/audit fields and are **not published**:
 
 - `geojson`
 - `observaciones`
@@ -33,17 +33,17 @@ Estas columnas de la fuente son administrativas/de auditoría y **no se publican
 - `fechaingreso`
 - `fecha_data`
 
-## Acceso vía DuckDB `httpfs`
+## Access via DuckDB `httpfs`
 
-Todos los ejemplos asumen DuckDB ≥ 1.0 con la extensión `httpfs` habilitada. Las consultas leen directamente desde el sitio sin descarga.
+All examples assume DuckDB ≥ 1.0 with the `httpfs` extension enabled. Queries read straight from the site without downloading.
 
 ```sql
 INSTALL httpfs; LOAD httpfs;
 ```
 
-### 1. Pozo único por `idpozo`
+### 1. Single well by `idpozo`
 
-Cada partición está ordenada por `(idpozo, fecha)`, por lo que las estadísticas de row-group de Parquet permiten que DuckDB pode los row-groups que no contienen el pozo solicitado: la consulta descarga rangos de bytes mínimos.
+Each partition is sorted by `(idpozo, fecha)`, so Parquet row-group statistics let DuckDB prune the row groups that do not contain the requested well: the query downloads minimal byte ranges.
 
 ```sql
 SELECT idpozo, fecha, prod_pet, prod_gas
@@ -52,9 +52,9 @@ WHERE idpozo = 12345
 ORDER BY fecha;
 ```
 
-### 2. Rango de años
+### 2. Year range
 
-El particionado Hive por `anio` permite que DuckDB pode las particiones fuera del rango solicitado. Habilita `hive_partitioning` para que la columna `anio` aparezca derivada del path.
+Hive partitioning on `anio` lets DuckDB prune partitions outside the requested range. Enable `hive_partitioning` so the `anio` column is derived from the path.
 
 ```sql
 SELECT anio, COUNT(*) AS rows, SUM(prod_pet) AS prod_pet_total
@@ -67,9 +67,9 @@ GROUP BY anio
 ORDER BY anio;
 ```
 
-### 3. Agregado por cuenca (join `wells` ↔ `monthly_production`)
+### 3. Aggregate by basin (join `wells` ↔ `monthly_production`)
 
-La tabla maestra `wells` se carga una vez (es chica); `monthly_production` se reduce por `anio` antes del join.
+The `wells` master table is loaded once (it is small); `monthly_production` is reduced by `anio` before the join.
 
 ```sql
 SELECT w.cuenca,
@@ -85,9 +85,9 @@ GROUP BY w.cuenca
 ORDER BY prod_pet_total DESC;
 ```
 
-### 4. Acceso por manifiesto + `generate_series`
+### 4. Manifest + `generate_series`
 
-El manifiesto `_files.json` lista las URLs relativas de cada partición. Si se prefiere evitar el patrón con asterisco (que requiere un LIST), se pueden generar las URLs con `generate_series` y leerlas vía un VALUES list — útil cuando el front-edge cachea por URL exacta.
+The `_files.json` manifest lists the relative URL of every partition. If you prefer to avoid the wildcard pattern (which requires a LIST), build the URLs with `generate_series` and read them via a VALUES list — handy when the front edge caches by exact URL.
 
 ```sql
 WITH urls AS (
@@ -101,7 +101,7 @@ WHERE m.idpozo = 12345
 ORDER BY m.fecha;
 ```
 
-Alternativamente, leer el manifiesto y construir la lista desde la aplicación cliente:
+Alternatively, read the manifest and build the URL list from the client application:
 
 ```python
 import json, urllib.request, duckdb
@@ -111,6 +111,6 @@ duckdb.sql("SELECT * FROM read_parquet(?, hive_partitioning = true) "
            "WHERE idpozo = 12345", params=[urls]).show()
 ```
 
-## Esquema completo
+## Full schema
 
-Ver `schema.md` (legible) / `schema.json` (consumo programático) / `schema.sql` (DDL para reproducir la estructura localmente).
+See `schema.md` (human-readable) / `schema.json` (programmatic consumption) / `schema.sql` (DDL to reproduce the structure locally).
