@@ -4,6 +4,16 @@ Open petroleum datasets converted to columnar Parquet files, served via HTTP and
 
 ## Language
 
+### Cross-dataset
+
+**Multi-parquet table**:
+A logical table published as a directory of two or more Parquet files sharing one schema, plus a `_files.json` manifest at the directory root. The manifest, not directory listing or globbing, is the file-discovery contract. See [Multi-parquet table convention](#multi-parquet-table-convention).
+_Avoid_: "partitioned table" (only some multi-parquet tables are Hive-partitioned), "shard" (implies HuggingFace-style size-based splitting, which petrodb does not do).
+
+**Manifest** (`_files.json`):
+A JSON array of every member file's path, relative to a multi-parquet table's directory root. Exists because DuckDB `httpfs` cannot glob or list a static HTTP server. One per multi-parquet table.
+_Avoid_: "catalog" — the 3W `instances.parquet` is a catalog (a queryable table of metadata rows), a different thing.
+
 ### Argentina production dataset
 
 **Well** (`idpozo`):
@@ -54,6 +64,24 @@ The upstream parquet file backing a single Instance. Filenames encode provenance
 - "Well" is overloaded across datasets — resolved by scope: Argentina **Well** = `idpozo`; Petrobras 3W **Well** = anonymized offshore wellbore `well_id`. Always qualify with the dataset name when the context is mixed.
 - "Event" is overloaded — resolved: in the Argentina dataset an **Event** is a row in `well_events.parquet` marking an operational-state transition; in the Petrobras 3W dataset an **Event class** is an anomaly category referenced by an Instance and by every Observation. Different concepts, different tables.
 
+## Multi-parquet table convention
+
+A **multi-parquet table** is any petrodb table published as a directory of two or more Parquet files rather than a single file — used when a table is too large for one file under Cloudflare's per-file cache target, or is naturally segmented (one file per Instance, one per well). One convention governs all of them, across every dataset:
+
+1. **Directory + manifest.** The table is a directory of ≥2 schema-sharing Parquet files with a `_files.json` manifest at its root — a JSON array of each file's path relative to that directory.
+2. **The manifest is the discovery contract.** DuckDB `httpfs` cannot glob or list a static HTTP server (Cloudflare Pages serves no directory index). Consumers read `_files.json`, then query the listed URLs. Globbing (`.../*.parquet`) is not a supported access pattern and must not appear in access docs.
+3. **Hive partitioning is an optional optimization.** When a low-cardinality column makes partition pruning worthwhile, files are laid out in Hive-style `key=value/` subdirectories and the partition column lives in the path, not the file body. With no such key, files sit flat in the directory. The `_files.json` manifest is mandatory either way.
+4. **Leaf filenames carry no query semantics.** A partition holding one file may name it `data.parquet`; a one-file-per-entity table names files by a stable entity identifier. Discovery is always via the manifest, never by parsing filenames.
+5. **The manifest is enforced.** A repo-wide test asserts that every directory under `parquet/` holding ≥2 Parquet files has a `_files.json` whose entries exactly match the files present.
+
+| Multi-parquet table | Hive key | Leaf files |
+| --- | --- | --- |
+| `argentina/monthly_production/` | `anio` | one `data.parquet` per partition |
+| `petrobras_3w/observations/` | `event_class` | one `<instance_id>.parquet` per Instance |
+| `force_2020/wells/` | none (flat) | one `<well>.parquet` per well |
+
+**Not the HuggingFace convention.** The HuggingFace Hub shards datasets by byte size (`{split}-NNNNN-of-MMMMM.parquet`) and declares files through dataset-card YAML, because the `datasets` library streams whole shards and does no predicate pushdown. petrodb partitions by column for DuckDB `httpfs`, which prunes on Hive paths and row-group statistics. The two solve different delivery problems — petrodb deliberately does not follow the HuggingFace layout. See [ADR-0004](docs/adr/0004-multi-parquet-table-convention.md).
+
 ## Argentina dataset — column buckets
 
 Driven by per-`idpozo` cross-year volatility (17.6M rows / 85,305 wells, 2006-2025). Four destinations:
@@ -89,7 +117,7 @@ Driven by per-`idpozo` cross-year volatility (17.6M rows / 85,305 wells, 2006-20
 - `wells.parquet` — single file, ~85,418 rows (incl. 113 orphans, flagged `has_production = false`)
 - `well_operator_history.parquet` — single file, one row per contiguous-`idempresa` run per `idpozo` (NULLs preserved as their own runs)
 - `well_events.parquet` — single file, one row per snapshot of `(tipoestado, tipoextraccion, tipopozo)` per transition month
-- `monthly_production/anio=YYYY/data.parquet` — hive-partitioned by year (22 files), each sorted by `(idpozo, mes)` for row-group pruning on single-well queries
+- `monthly_production/anio=YYYY/data.parquet` — hive-partitioned by year (20 files, 2006–2025), each sorted by `(idpozo, mes)` for row-group pruning on single-well queries
 - `monthly_production/_files.json` — manifest of partition URLs for httpfs consumers
 
 Rationale: keep individual file sizes well under Cloudflare's edge-cache file-size limits so the site is zero-cost static hosting. Year partitioning lets DuckDB httpfs prune by `anio`; sorting within each file lets it prune by `idpozo` via row-group statistics, so single-well queries fetch only the rows they need.
@@ -127,7 +155,7 @@ The export step asserts the following before writing Parquets; failure aborts pu
 2. Every `idpozo` in `monthly_production`, `well_operator_history`, `well_events` exists in `wells.parquet` (FK integrity).
 3. Date-completeness: for every well, monthly row count == `(last_fecha - first_fecha)` in months + 1.
 4. Geometry in `wells.parquet` is parseable WKB for every row that carries a `geom`.
-5. Year-partition count is 22 and the sum of partition row counts equals the staged-source row count.
+5. Year-partition count is 20 (2006–2025) and the sum of partition row counts equals the staged-source row count.
 6. Soft-warn if any year-partition Parquet exceeds 50 MB (Cloudflare cache headroom).
 
 ## Petrobras 3W dataset — tables

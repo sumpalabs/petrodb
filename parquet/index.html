@@ -1865,6 +1865,30 @@ result = con.<span class="function">execute</span>(<span class="string">"""
                         </div>
                     </div>
                 </div>
+
+                <div class="download-grid" style="margin-top: 16px;">
+                    <a href="force_2020/wells/_files.json" class="download-button">
+                        <span>wells/_files.json &nbsp;·&nbsp; manifest for read_parquet / httpfs</span>
+                        <span class="download-icon">{}</span>
+                    </a>
+                    <a href="force_2020/README.md" class="download-button">
+                        <span>README.md</span>
+                        <span class="download-icon">📖</span>
+                    </a>
+                    <a href="force_2020/schema.md" class="download-button">
+                        <span>schema.md</span>
+                        <span class="download-icon">📖</span>
+                    </a>
+                    <a href="force_2020/schema.json" class="download-button">
+                        <span>schema.json</span>
+                        <span class="download-icon">{}</span>
+                    </a>
+                    <a href="force_2020/schema.sql" class="download-button">
+                        <span>schema.sql</span>
+                        <span class="download-icon">⌘</span>
+                    </a>
+                </div>
+                <p class="file-size">108 wells · one Parquet per well · 29 log columns · flat multi-parquet table (ADR-0004)</p>
             </div>
 
             <!-- About Force 2020 Section -->
@@ -1971,6 +1995,44 @@ multi_well = con.<span class="function">execute</span>(<span class="string">"""
                         <div class="foreign-key-note">
                             Log curves: GR (Gamma Ray), RHOB (Bulk Density), NPHI (Neutron Porosity),
                             DTC/DTS (Sonic), RDEP/RMED/RSHA (Resistivity), CALI (Caliper), PEF (Photoelectric Factor)
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Schema Documents Section -->
+            <section>
+                <h2>Schema Documents</h2>
+                <p>
+                    Full per-column documentation is published alongside the well-log parquets:
+                </p>
+                <div class="schema-grid">
+                    <div class="table-card">
+                        <h3 class="table-name">README.md</h3>
+                        <p class="table-meta">Dataset overview, per-well file layout, and DuckDB httpfs access patterns</p>
+                        <div class="foreign-key-note">
+                            → <a href="force_2020/README.md">Open README.md</a>
+                        </div>
+                    </div>
+                    <div class="table-card">
+                        <h3 class="table-name">schema.md</h3>
+                        <p class="table-meta">English column docs for all 29 log curves, units, and the lithology label</p>
+                        <div class="foreign-key-note">
+                            → <a href="force_2020/schema.md">Open schema.md</a>
+                        </div>
+                    </div>
+                    <div class="table-card">
+                        <h3 class="table-name">schema.json</h3>
+                        <p class="table-meta">Machine-readable column list, types, units, and primary keys</p>
+                        <div class="foreign-key-note">
+                            → <a href="force_2020/schema.json">Open schema.json</a>
+                        </div>
+                    </div>
+                    <div class="table-card">
+                        <h3 class="table-name">schema.sql</h3>
+                        <p class="table-meta">DuckDB DDL that mirrors the published well-log structure</p>
+                        <div class="foreign-key-note">
+                            → <a href="force_2020/schema.sql">Open schema.sql</a>
                         </div>
                     </div>
                 </div>
