@@ -1,0 +1,240 @@
+{
+  "dataset": "force_2020",
+  "description": "Wireline and LWD well logs from 108 Norwegian North Sea wells, with an interpreted lithology label per sample \u2014 the FORCE 2020 Machine Predicted Lithology challenge corpus, republished as one Parquet file per well.",
+  "upstream": {
+    "name": "FORCE 2020 Machine Predicted Lithology challenge",
+    "url": "https://github.com/bolgebrygg/Force-2020-Machine-Learning-competition",
+    "license": "CC BY 4.0"
+  },
+  "tables": {
+    "wells": {
+      "description": "One row per ~0.15 m log sample. Published as one file per well under `wells/<well>.parquet` (a flat multi-parquet table per ADR-0004: no Hive key, discovery via `wells/_files.json`).",
+      "layout": "wells/<well>.parquet",
+      "files_manifest": "wells/_files.json",
+      "columns": [
+        {
+          "name": "WELL",
+          "type": "VARCHAR",
+          "unit": null,
+          "not_null": true,
+          "primary_key": true
+        },
+        {
+          "name": "DEPTH_MD",
+          "type": "DOUBLE",
+          "unit": "m",
+          "not_null": true,
+          "primary_key": true
+        },
+        {
+          "name": "X_LOC",
+          "type": "DOUBLE",
+          "unit": "m",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "Y_LOC",
+          "type": "DOUBLE",
+          "unit": "m",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "Z_LOC",
+          "type": "DOUBLE",
+          "unit": "m",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "GROUP",
+          "type": "VARCHAR",
+          "unit": null,
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "FORMATION",
+          "type": "VARCHAR",
+          "unit": null,
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "CALI",
+          "type": "DOUBLE",
+          "unit": "in",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "RSHA",
+          "type": "DOUBLE",
+          "unit": "ohm\u00b7m",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "RMED",
+          "type": "DOUBLE",
+          "unit": "ohm\u00b7m",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "RDEP",
+          "type": "DOUBLE",
+          "unit": "ohm\u00b7m",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "RHOB",
+          "type": "DOUBLE",
+          "unit": "g/cm\u00b3",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "GR",
+          "type": "DOUBLE",
+          "unit": "gAPI",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "SGR",
+          "type": "DOUBLE",
+          "unit": "gAPI",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "NPHI",
+          "type": "DOUBLE",
+          "unit": "v/v",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "PEF",
+          "type": "DOUBLE",
+          "unit": "b/e",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "DTC",
+          "type": "DOUBLE",
+          "unit": "\u00b5s/ft",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "SP",
+          "type": "DOUBLE",
+          "unit": "mV",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "BS",
+          "type": "DOUBLE",
+          "unit": "in",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "ROP",
+          "type": "DOUBLE",
+          "unit": "m/h",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "DTS",
+          "type": "DOUBLE",
+          "unit": "\u00b5s/ft",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "DCAL",
+          "type": "DOUBLE",
+          "unit": "in",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "DRHO",
+          "type": "DOUBLE",
+          "unit": "g/cm\u00b3",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "MUDWEIGHT",
+          "type": "DOUBLE",
+          "unit": "g/cm\u00b3",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "RMIC",
+          "type": "DOUBLE",
+          "unit": "ohm\u00b7m",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "ROPA",
+          "type": "DOUBLE",
+          "unit": "m/h",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "RXO",
+          "type": "DOUBLE",
+          "unit": "ohm\u00b7m",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "FORCE_2020_LITHOFACIES_LITHOLOGY",
+          "type": "BIGINT",
+          "unit": "code",
+          "not_null": false,
+          "primary_key": false
+        },
+        {
+          "name": "dataset",
+          "type": "VARCHAR",
+          "unit": null,
+          "not_null": false,
+          "primary_key": false
+        }
+      ],
+      "primary_key": [
+        "WELL",
+        "DEPTH_MD"
+      ],
+      "foreign_keys": []
+    }
+  },
+  "lithology_labels": {
+    "30000": "Sandstone",
+    "65000": "Shale",
+    "65030": "Sandstone/Shale",
+    "70000": "Limestone",
+    "70032": "Chalk",
+    "74000": "Dolomite",
+    "80000": "Marl",
+    "86000": "Anhydrite",
+    "88000": "Halite",
+    "90000": "Coal",
+    "93000": "Basement",
+    "99000": "Tuff"
+  }
+}

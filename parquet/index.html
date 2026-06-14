@@ -647,6 +647,242 @@
             display: none;
         }
 
+        /* Observations Explorer (Petrobras 3W) */
+        .obs-status {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--steel-gray);
+            padding: 16px 0;
+        }
+
+        .obs-status.error {
+            color: var(--amber-bright);
+        }
+
+        .obs-accordion {
+            margin-top: 8px;
+        }
+
+        .obs-row {
+            margin-bottom: 12px;
+        }
+
+        .obs-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 16px 24px;
+            background: var(--petroleum-blue);
+            border: 1px solid var(--ocean-blue);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .obs-header:hover {
+            background: var(--slate-blue);
+            border-color: var(--amber-accent);
+        }
+
+        .obs-header.expanded {
+            border-radius: 8px 8px 0 0;
+            border-bottom: none;
+            background: var(--slate-blue);
+        }
+
+        .obs-title {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 0;
+        }
+
+        .obs-code {
+            flex-shrink: 0;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--petroleum-dark);
+            background: var(--amber-accent);
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+        }
+
+        .obs-name {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.05rem;
+            color: var(--text-primary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .obs-meta {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-shrink: 0;
+        }
+
+        .obs-count {
+            font-size: 0.85rem;
+            color: var(--amber-accent);
+            background: rgba(244, 162, 97, 0.15);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-family: 'IBM Plex Mono', monospace;
+            white-space: nowrap;
+        }
+
+        .obs-chevron {
+            color: var(--amber-accent);
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+        }
+
+        .obs-header.expanded .obs-chevron {
+            transform: rotate(180deg);
+        }
+
+        .obs-body {
+            display: none;
+            padding: 20px 24px;
+            background: rgba(13, 27, 46, 0.6);
+            border: 1px solid var(--ocean-blue);
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+        }
+
+        .obs-body.expanded {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .obs-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .obs-search {
+            flex: 1 1 240px;
+            max-width: 360px;
+            padding: 10px 16px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.85rem;
+            background: var(--code-bg);
+            border: 1px solid var(--ocean-blue);
+            border-radius: 6px;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .obs-search::placeholder {
+            color: var(--steel-gray);
+        }
+
+        .obs-search:focus {
+            outline: none;
+            border-color: var(--amber-accent);
+            box-shadow: 0 0 16px rgba(244, 162, 97, 0.15);
+        }
+
+        .obs-pageinfo {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--steel-gray);
+            white-space: nowrap;
+        }
+
+        .obs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 12px;
+        }
+
+        .obs-file {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px 16px;
+            background: var(--code-bg);
+            border: 1px solid var(--ocean-blue);
+            border-radius: 6px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+        }
+
+        .obs-file:hover {
+            border-color: var(--amber-accent);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(244, 162, 97, 0.15);
+        }
+
+        .obs-file span:first-child {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .obs-file .download-icon {
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .obs-empty {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--steel-gray);
+            padding: 8px 0;
+        }
+
+        .obs-pager {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .obs-pager.hidden {
+            display: none;
+        }
+
+        .obs-pagebtn {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.85rem;
+            padding: 8px 18px;
+            background: var(--petroleum-blue);
+            border: 1px solid var(--ocean-blue);
+            border-radius: 6px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .obs-pagebtn:hover:not(:disabled) {
+            border-color: var(--amber-accent);
+            color: var(--amber-accent);
+        }
+
+        .obs-pagebtn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
         /* Footer */
         footer {
             text-align: center;
@@ -1629,6 +1865,30 @@ result = con.<span class="function">execute</span>(<span class="string">"""
                         </div>
                     </div>
                 </div>
+
+                <div class="download-grid" style="margin-top: 16px;">
+                    <a href="force_2020/wells/_files.json" class="download-button">
+                        <span>wells/_files.json &nbsp;·&nbsp; manifest for read_parquet / httpfs</span>
+                        <span class="download-icon">{}</span>
+                    </a>
+                    <a href="force_2020/README.md" class="download-button">
+                        <span>README.md</span>
+                        <span class="download-icon">📖</span>
+                    </a>
+                    <a href="force_2020/schema.md" class="download-button">
+                        <span>schema.md</span>
+                        <span class="download-icon">📖</span>
+                    </a>
+                    <a href="force_2020/schema.json" class="download-button">
+                        <span>schema.json</span>
+                        <span class="download-icon">{}</span>
+                    </a>
+                    <a href="force_2020/schema.sql" class="download-button">
+                        <span>schema.sql</span>
+                        <span class="download-icon">⌘</span>
+                    </a>
+                </div>
+                <p class="file-size">108 wells · one Parquet per well · 29 log columns · flat multi-parquet table (ADR-0004)</p>
             </div>
 
             <!-- About Force 2020 Section -->
@@ -1735,6 +1995,44 @@ multi_well = con.<span class="function">execute</span>(<span class="string">"""
                         <div class="foreign-key-note">
                             Log curves: GR (Gamma Ray), RHOB (Bulk Density), NPHI (Neutron Porosity),
                             DTC/DTS (Sonic), RDEP/RMED/RSHA (Resistivity), CALI (Caliper), PEF (Photoelectric Factor)
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Schema Documents Section -->
+            <section>
+                <h2>Schema Documents</h2>
+                <p>
+                    Full per-column documentation is published alongside the well-log parquets:
+                </p>
+                <div class="schema-grid">
+                    <div class="table-card">
+                        <h3 class="table-name">README.md</h3>
+                        <p class="table-meta">Dataset overview, per-well file layout, and DuckDB httpfs access patterns</p>
+                        <div class="foreign-key-note">
+                            → <a href="force_2020/README.md">Open README.md</a>
+                        </div>
+                    </div>
+                    <div class="table-card">
+                        <h3 class="table-name">schema.md</h3>
+                        <p class="table-meta">English column docs for all 29 log curves, units, and the lithology label</p>
+                        <div class="foreign-key-note">
+                            → <a href="force_2020/schema.md">Open schema.md</a>
+                        </div>
+                    </div>
+                    <div class="table-card">
+                        <h3 class="table-name">schema.json</h3>
+                        <p class="table-meta">Machine-readable column list, types, units, and primary keys</p>
+                        <div class="foreign-key-note">
+                            → <a href="force_2020/schema.json">Open schema.json</a>
+                        </div>
+                    </div>
+                    <div class="table-card">
+                        <h3 class="table-name">schema.sql</h3>
+                        <p class="table-meta">DuckDB DDL that mirrors the published well-log structure</p>
+                        <div class="foreign-key-note">
+                            → <a href="force_2020/schema.sql">Open schema.sql</a>
                         </div>
                     </div>
                 </div>
@@ -2065,6 +2363,21 @@ result = duckdb.<span class="function">sql</span>(<span class="string">"""
                 <p class="file-size">Lookup + Wells master + Instance catalog + per-Instance Observations (hive-partitioned by event_class) · pinned upstream identity logged on every publish</p>
             </div>
 
+            <!-- Observations Explorer Section -->
+            <section>
+                <h2>Browse Observations</h2>
+                <p>
+                    The Observations time-series ships as one parquet file per Instance,
+                    hive-partitioned across the ten <code>event_class</code> regimes
+                    (<code>0 = NORMAL</code>, <code>1..9 = </code>anomaly categories).
+                    Expand a regime to browse and download its individual Instance files
+                    (<code>observations/event_class=N/&lt;instance_id&gt;.parquet</code>),
+                    or filter by Instance id to jump straight to a window.
+                </p>
+                <div class="obs-status" id="obs-status">Loading observation manifest…</div>
+                <div class="obs-accordion" id="obs-accordion" hidden></div>
+            </section>
+
             <!-- About Section -->
             <section>
                 <h2>About This Dataset</h2>
@@ -2291,6 +2604,239 @@ WHERE well_kind = <span class="string">'real'</span>;</pre>
                 searchResultsInfo.textContent = `Found ${visibleCount} well${visibleCount !== 1 ? 's' : ''} matching "${e.target.value}"`;
             }
         });
+
+        // Petrobras 3W Observations explorer
+        (function () {
+            // Canonical event-class names mirror event_types.parquet / CONTEXT.md glossary.
+            // The dataset is pinned at upstream v.1.70.0, so this lookup is stable.
+            const EVENT_CLASSES = [
+                { code: 0, name: 'Normal Operation' },
+                { code: 1, name: 'Abrupt Increase of BSW' },
+                { code: 2, name: 'Spurious Closure of DHSV' },
+                { code: 3, name: 'Severe Slugging' },
+                { code: 4, name: 'Flow Instability' },
+                { code: 5, name: 'Rapid Productivity Loss' },
+                { code: 6, name: 'Quick Restriction in PCK' },
+                { code: 7, name: 'Scaling in PCK' },
+                { code: 8, name: 'Hydrate in Production Line' },
+                { code: 9, name: 'Hydrate in Service Line' }
+            ];
+            const MANIFEST_URL = 'petrobras_3w/observations/_files.json';
+            const OBS_BASE = 'petrobras_3w/observations/';
+            const PAGE_SIZE = 60;
+
+            const statusEl = document.getElementById('obs-status');
+            const accordionEl = document.getElementById('obs-accordion');
+            if (!accordionEl) return;
+
+            // Per-class runtime state, keyed by event_class code.
+            const rowState = {};
+            let manifestPromise = null;
+
+            // Group manifest paths ("event_class=N/<id>.parquet") into { code -> [{ id, path }] }.
+            function groupByClass(paths) {
+                const byClass = {};
+                EVENT_CLASSES.forEach(c => { byClass[c.code] = []; });
+                paths.forEach(path => {
+                    const slash = path.indexOf('/');
+                    if (slash === -1) return;
+                    const partition = path.slice(0, slash); // event_class=N
+                    const eq = partition.indexOf('=');
+                    if (eq === -1) return;
+                    const code = Number(partition.slice(eq + 1));
+                    if (!(code in byClass)) return;
+                    const file = path.slice(slash + 1);
+                    const id = file.replace(/\.parquet$/, '');
+                    byClass[code].push({ id, path: OBS_BASE + path });
+                });
+                Object.values(byClass).forEach(list =>
+                    list.sort((a, b) => a.id.localeCompare(b.id))
+                );
+                return byClass;
+            }
+
+            function ensureManifest() {
+                if (manifestPromise) return manifestPromise;
+                manifestPromise = fetch(MANIFEST_URL)
+                    .then(r => {
+                        if (!r.ok) throw new Error('HTTP ' + r.status);
+                        return r.json();
+                    })
+                    .then(paths => groupByClass(paths));
+                return manifestPromise;
+            }
+
+            // Build the static accordion shell (collapsed) so the section renders immediately.
+            function renderShell() {
+                EVENT_CLASSES.forEach(cls => {
+                    rowState[cls.code] = { files: null, filtered: null, page: 0, built: false };
+
+                    const row = document.createElement('div');
+                    row.className = 'obs-row';
+
+                    const header = document.createElement('div');
+                    header.className = 'obs-header';
+                    header.innerHTML =
+                        '<div class="obs-title">' +
+                            '<span class="obs-code">' + cls.code + '</span>' +
+                            '<span class="obs-name">' + cls.name + '</span>' +
+                        '</div>' +
+                        '<div class="obs-meta">' +
+                            '<span class="obs-count" data-count>…</span>' +
+                            '<span class="obs-chevron">▼</span>' +
+                        '</div>';
+
+                    const body = document.createElement('div');
+                    body.className = 'obs-body';
+
+                    header.addEventListener('click', () => toggleRow(cls.code, header, body));
+
+                    row.appendChild(header);
+                    row.appendChild(body);
+                    accordionEl.appendChild(row);
+
+                    rowState[cls.code].header = header;
+                    rowState[cls.code].body = body;
+                    rowState[cls.code].countEl = header.querySelector('[data-count]');
+                });
+            }
+
+            function fillCounts(byClass) {
+                EVENT_CLASSES.forEach(cls => {
+                    const n = byClass[cls.code].length;
+                    rowState[cls.code].countEl.textContent =
+                        n + ' file' + (n !== 1 ? 's' : '');
+                });
+            }
+
+            function toggleRow(code, header, body) {
+                const st = rowState[code];
+                if (header.classList.contains('expanded')) {
+                    header.classList.remove('expanded');
+                    body.classList.remove('expanded');
+                    return;
+                }
+                header.classList.add('expanded');
+                body.classList.add('expanded');
+                if (st.built) return;
+
+                body.innerHTML = '<div class="obs-empty">Loading files…</div>';
+                ensureManifest().then(byClass => {
+                    st.files = byClass[code];
+                    st.filtered = st.files;
+                    buildRowUI(code);
+                    st.built = true;
+                }).catch(() => {
+                    body.innerHTML = '<div class="obs-empty">Could not load file list.</div>';
+                });
+            }
+
+            // Build the search + paginated grid for an expanded row (once).
+            function buildRowUI(code) {
+                const st = rowState[code];
+                const body = st.body;
+                body.innerHTML = '';
+
+                const toolbar = document.createElement('div');
+                toolbar.className = 'obs-toolbar';
+                const search = document.createElement('input');
+                search.type = 'text';
+                search.className = 'obs-search';
+                search.placeholder = 'Filter by Instance id…';
+                const pageInfo = document.createElement('span');
+                pageInfo.className = 'obs-pageinfo';
+                toolbar.appendChild(search);
+                toolbar.appendChild(pageInfo);
+
+                const grid = document.createElement('div');
+                grid.className = 'obs-grid';
+
+                const pager = document.createElement('div');
+                pager.className = 'obs-pager';
+                const prev = document.createElement('button');
+                prev.className = 'obs-pagebtn';
+                prev.textContent = '‹ Prev';
+                const next = document.createElement('button');
+                next.className = 'obs-pagebtn';
+                next.textContent = 'Next ›';
+                pager.appendChild(prev);
+                pager.appendChild(next);
+
+                body.appendChild(toolbar);
+                body.appendChild(grid);
+                body.appendChild(pager);
+
+                st.refs = { search, pageInfo, grid, pager, prev, next };
+
+                search.addEventListener('input', () => {
+                    const q = search.value.toLowerCase().trim();
+                    st.filtered = q
+                        ? st.files.filter(f => f.id.toLowerCase().includes(q))
+                        : st.files;
+                    st.page = 0;
+                    renderPage(code);
+                });
+                prev.addEventListener('click', () => {
+                    if (st.page > 0) { st.page--; renderPage(code); }
+                });
+                next.addEventListener('click', () => {
+                    const last = Math.max(0, Math.ceil(st.filtered.length / PAGE_SIZE) - 1);
+                    if (st.page < last) { st.page++; renderPage(code); }
+                });
+
+                renderPage(code);
+            }
+
+            function renderPage(code) {
+                const st = rowState[code];
+                const { grid, pageInfo, pager, prev, next } = st.refs;
+                const total = st.filtered.length;
+
+                if (total === 0) {
+                    grid.innerHTML = '<div class="obs-empty">No Instances match that filter.</div>';
+                    pageInfo.textContent = '0 files';
+                    pager.classList.add('hidden');
+                    return;
+                }
+
+                const pageCount = Math.ceil(total / PAGE_SIZE);
+                if (st.page > pageCount - 1) st.page = pageCount - 1;
+                const start = st.page * PAGE_SIZE;
+                const end = Math.min(start + PAGE_SIZE, total);
+
+                grid.innerHTML = '';
+                const frag = document.createDocumentFragment();
+                for (let i = start; i < end; i++) {
+                    const f = st.filtered[i];
+                    const a = document.createElement('a');
+                    a.className = 'obs-file';
+                    a.href = f.path;
+                    a.setAttribute('download', '');
+                    a.title = f.id + '.parquet';
+                    a.innerHTML = '<span>' + f.id + '</span>' +
+                        '<span class="download-icon">⬇</span>';
+                    frag.appendChild(a);
+                }
+                grid.appendChild(frag);
+
+                pageInfo.textContent = (start + 1) + '–' + end + ' of ' + total + ' files';
+                pager.classList.toggle('hidden', pageCount <= 1);
+                prev.disabled = st.page === 0;
+                next.disabled = st.page >= pageCount - 1;
+            }
+
+            renderShell();
+            ensureManifest().then(byClass => {
+                fillCounts(byClass);
+                statusEl.hidden = true;
+                accordionEl.hidden = false;
+            }).catch(() => {
+                statusEl.textContent =
+                    'Could not load the observation manifest. ' +
+                    'You can still access files via observations/_files.json above.';
+                statusEl.classList.add('error');
+            });
+        })();
     </script>
 </body>
 </html>
