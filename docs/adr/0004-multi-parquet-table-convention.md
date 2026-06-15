@@ -19,6 +19,7 @@ A **multi-parquet table** is a directory of two or more schema-sharing Parquet f
 
 ## Consequences
 
+- Hosting the bytes *on* the Hugging Face Hub (ADR-0005) does not change this convention: petrodb stores the parquet files on HF for reliable Range support but keeps its own Hive + `_files.json` layout — it does **not** adopt HF's shard / dataset-card `configs` convention. The `_files.json` manifest remains the discovery contract regardless of host.
 - `_files.json` is part of the public API of every multi-parquet table; consumers depend on its shape and location.
 - Access documentation must use manifest-based discovery, never `.../*.parquet` globbing.
 - FORCE 2020's `force_2020/wells/` directory must gain a `_files.json` to comply (tracked in issue #32).

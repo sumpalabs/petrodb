@@ -1,6 +1,8 @@
 # Host the prod parquet tree on Cloudflare Pages
 
-**Status:** accepted
+**Status:** superseded by [ADR-0005](0005-host-parquet-on-huggingface.md)
+
+> **Superseded.** Cloudflare Pages serves HTTP `Range` only from edge cache, and `.parquet` is not cache-eligible by default, so DuckDB `httpfs` Range reads worked only intermittently — defeating columnar pushdown. The parquet **bytes** moved to Hugging Face (`resolve` URLs honour Range unconditionally); Cloudflare Pages still serves the **landing + schema docs**. See [ADR-0005](0005-host-parquet-on-huggingface.md).
 
 ## Context
 

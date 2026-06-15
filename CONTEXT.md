@@ -66,7 +66,7 @@ The upstream parquet file backing a single Instance. Filenames encode provenance
 
 ## Multi-parquet table convention
 
-A **multi-parquet table** is any petrodb table published as a directory of two or more Parquet files rather than a single file — used when a table is too large for one file under Cloudflare's per-file cache target, or is naturally segmented (one file per Instance, one per well). One convention governs all of them, across every dataset:
+A **multi-parquet table** is any petrodb table published as a directory of two or more Parquet files rather than a single file — used when a single file would be too large for efficient Range-based fetches, or the table is naturally segmented (one file per Instance, one per well). One convention governs all of them, across every dataset:
 
 1. **Directory + manifest.** The table is a directory of ≥2 schema-sharing Parquet files with a `_files.json` manifest at its root — a JSON array of each file's path relative to that directory.
 2. **The manifest is the discovery contract.** DuckDB `httpfs` cannot glob or list a static HTTP server (Cloudflare Pages serves no directory index). Consumers read `_files.json`, then query the listed URLs. Globbing (`.../*.parquet`) is not a supported access pattern and must not appear in access docs.
@@ -80,7 +80,7 @@ A **multi-parquet table** is any petrodb table published as a directory of two o
 | `petrobras_3w/observations/` | `event_class` | one `<instance_id>.parquet` per Instance |
 | `force_2020/wells/` | none (flat) | one `<well>.parquet` per well |
 
-**Not the HuggingFace convention.** The HuggingFace Hub shards datasets by byte size (`{split}-NNNNN-of-MMMMM.parquet`) and declares files through dataset-card YAML, because the `datasets` library streams whole shards and does no predicate pushdown. petrodb partitions by column for DuckDB `httpfs`, which prunes on Hive paths and row-group statistics. The two solve different delivery problems — petrodb deliberately does not follow the HuggingFace layout. See [ADR-0004](docs/adr/0004-multi-parquet-table-convention.md).
+**Not the HuggingFace convention — even though the bytes are hosted on HF.** The HuggingFace Hub shards datasets by byte size (`{split}-NNNNN-of-MMMMM.parquet`) and declares files through dataset-card YAML, because the `datasets` library streams whole shards and does no predicate pushdown. petrodb partitions by column for DuckDB `httpfs`, which prunes on Hive paths and row-group statistics. The two solve different delivery problems. petrodb now *stores* its parquet bytes on the HF Hub for reliable HTTP Range support (ADR-0005), but keeps its own Hive + `_files.json` layout and deliberately does **not** adopt HF's shard / `configs` layout. Hosting on HF ≠ following the HF dataset convention. See [ADR-0004](docs/adr/0004-multi-parquet-table-convention.md).
 
 ## Argentina dataset — column buckets
 
@@ -120,7 +120,7 @@ Driven by per-`idpozo` cross-year volatility (17.6M rows / 85,305 wells, 2006-20
 - `monthly_production/anio=YYYY/data.parquet` — hive-partitioned by year (20 files, 2006–2025), each sorted by `(idpozo, mes)` for row-group pruning on single-well queries
 - `monthly_production/_files.json` — manifest of partition URLs for httpfs consumers
 
-Rationale: keep individual file sizes well under Cloudflare's edge-cache file-size limits so the site is zero-cost static hosting. Year partitioning lets DuckDB httpfs prune by `anio`; sorting within each file lets it prune by `idpozo` via row-group statistics, so single-well queries fetch only the rows they need.
+Rationale: keep individual file sizes modest so Range-based fetches stay granular (and well within any host's per-file limits). Year partitioning lets DuckDB httpfs prune by `anio`; sorting within each file lets it prune by `idpozo` via row-group statistics, so single-well queries fetch only the rows they need.
 
 ## Argentina dataset — pipeline
 
@@ -156,7 +156,7 @@ The export step asserts the following before writing Parquets; failure aborts pu
 3. Date-completeness: for every well, monthly row count == `(last_fecha - first_fecha)` in months + 1.
 4. Geometry in `wells.parquet` is parseable WKB for every row that carries a `geom`.
 5. Year-partition count is 20 (2006–2025) and the sum of partition row counts equals the staged-source row count.
-6. Soft-warn if any year-partition Parquet exceeds 50 MB (Cloudflare cache headroom).
+6. Soft-warn if any year-partition Parquet exceeds 50 MB (Range-granularity / parallel-fetch hygiene; formerly Cloudflare cache headroom).
 
 ## Petrobras 3W dataset — tables
 
@@ -202,7 +202,7 @@ parquet/petrobras_3w/
 └── LICENSE-3W-DATA.md                              # CC BY 4.0 mirror with upstream attribution
 ```
 
-Rationale: 2,228 instances × ~0.4–1 MB each keep every file well under Cloudflare's edge-cache size target. Hive partitioning by `event_class` prunes the dominant ML query pattern ("train on class N"). One-file-per-instance preserves the upstream conceptual unit and makes single-instance fetch a direct GET (the ML training-loop pattern). Catalog tables answer corpus-wide questions without touching Observations.
+Rationale: 2,228 instances × ~0.4–1 MB each keep every file small enough for granular Range-based fetches. Hive partitioning by `event_class` prunes the dominant ML query pattern ("train on class N"). One-file-per-instance preserves the upstream conceptual unit and makes single-instance fetch a direct GET (the ML training-loop pattern). Catalog tables answer corpus-wide questions without touching Observations.
 
 ## Petrobras 3W dataset — pre-publish validation
 
@@ -216,11 +216,14 @@ The export step asserts the following before writing Parquets; failure aborts pu
 6. For Instances with `has_transient = false` event class (events 3, 4): no `class` value ≥ 100 appears; no `class = 0` appears.
 7. Real-Well coverage equals the count derived from upstream filename prefixes at the pinned git tag (currently 40 distinct `WELL-NNNNN` prefixes at `v.1.70.0` / dataset version 2.0.0 — fail-loud if our derived `wells.parquet` rowcount disagrees, to catch upstream version drift). Upstream's `dataset/README.md` states "42 real wells covered", but only 40 IDs (`00001..00016`, `00019..00042`) actually appear in instance filenames; IDs `00017` and `00018` are absent. The validator pins on the observed 40.
 8. `wells.parquet` rows are limited to the union of `instances.well_id WHERE well_kind = 'real'`.
-9. Soft-warn if any Observations Parquet exceeds 50 MB (Cloudflare cache headroom).
+9. Soft-warn if any Observations Parquet exceeds 50 MB (Range-granularity / parallel-fetch hygiene; formerly Cloudflare cache headroom).
 
-## Petrobras 3W dataset — environments
+## PetroDB — hosting & environments
 
-Two hosting paths sit alongside each other, never sharing state:
+Three hosting paths sit alongside each other, never sharing state. The split (data on HF, landing on Cloudflare) exists because Cloudflare Pages honours HTTP `Range` only from edge cache and `.parquet` is not cache-eligible, so `httpfs` Range reads worked only intermittently; HF `resolve` URLs honour Range unconditionally (ADR-0005).
 
-- **Local dev** — `deploy.sh` rsyncs `parquet/` into the Caddy-mounted volume; Caddy serves `dev-petrodb.ocortez.com` straight from disk. Constants fall back to this host when `BASE_URL` is unset. Iterating on a feature branch goes here, never to Cloudflare.
-- **Cloudflare Pages** — one project (`vars.CLOUDFLARE_PAGES_PROJECT`) with two deployments selected by `wrangler pages deploy --branch <ref>`. `.github/workflows/deploy-cloudflare-pages.yml` runs on push to `main` (→ production at `petrodb.ocortez.com`) and to `stage` (→ preview deployment). Push-to-`main` is the publish gate; there is no separate promote step. The workflow triggers on any change under `parquet/` or the 3W pipeline sources and always uploads the whole `parquet/` directory so committed datasets (Argentina, FORCE 2020, Volve) ride along with the 3W tree. `BASE_URL` is per-branch (`vars.BASE_URL_MAIN` / `vars.BASE_URL_STAGE`) and holds only the host (e.g. `https://petrodb.ocortez.com`) — the `/petrobras_3w` dataset segment is appended by the constants module to match this dataset's directory under `parquet/`. The host is per-branch because it's stamped into `instances.parquet#source_url` at build time and the catalog must reference the host where its own bytes are reachable. The 3W pipeline re-run itself is gated by a cache keyed on the 3W sources + the resolved `BASE_URL`: a docs-only or non-3W parquet change deploys from the previously-generated tree without rebuilding. Cloudflare deduplicates by content hash so unchanged files don't re-transfer. See [ADR-0003](docs/adr/0003-cloudflare-pages-hosting.md).
+- **Local dev** — `deploy.sh` rsyncs the whole `parquet/` tree (data + docs) into the Caddy-mounted volume; Caddy serves `dev-petrodb.ocortez.com` straight from disk and honours Range. Constants fall back to this host when `BASE_URL` is unset. Iterating on a feature branch goes here, never to prod.
+- **Hugging Face (prod/stage data)** — the parquet bytes + `_files.json` manifests live in one HF **dataset** repo (`sumpalabs/petrodb`, a monorepo mirroring the `parquet/` root). Consumers run DuckDB `httpfs` against `https://huggingface.co/datasets/sumpalabs/petrodb/resolve/<rev>/<dataset>/...`; HF serves LFS/Xet objects via CloudFront with Range on every request. Two branches mirror the two GitHub branches: `main` (the public, discovered deployment) and `stage` (`/resolve/stage/`, for validating real HF Range behaviour before prod — local Caddy dev can't). LFS content-addressing deduplicates identical bytes across branches, so `stage` mirroring `main` costs negligible storage. `source_url` bakes `/resolve/main/`; consumers swap `main`→a commit SHA for a frozen snapshot.
+- **Cloudflare Pages (landing + docs)** — one project (`vars.CLOUDFLARE_PAGES_PROJECT`), two deployments via `wrangler pages deploy --branch <ref>`, serving only `index.html`, the svg, and the per-dataset schema docs (`schema.md/json/sql`, `README.md`) at `petrodb.ocortez.com` — static HTML needing no Range. It no longer carries `*.parquet` or `_files.json`.
+
+`BASE_URL` (`scripts/transform/petrobras_3w/constants.py`) is the HF resolve base, per-branch (`vars.BASE_URL_MAIN` / `vars.BASE_URL_STAGE`); the `/petrobras_3w` dataset segment is appended by the constants module to match this dataset's directory under `parquet/`. It's per-branch because it's stamped into `instances.parquet#source_url` at build time and the catalog must reference the host where its own bytes are reachable. The deploy workflow runs on push to `main`/`stage` (push-to-`main` is the publish gate, no separate promote step), triggered by any change under `parquet/` or the 3W pipeline sources. It (re)builds the 3W tree — gated by a cache keyed on the 3W sources + the resolved `BASE_URL`, so a docs-only or non-3W change skips the rebuild — then **uploads the data to HF** via the `hf` CLI (`--repo-type dataset --revision <branch>`, fine-grained `HF_TOKEN` secret; `--include '**/*.parquet' --include '**/_files.json'` so committed datasets ride along with the 3W tree) and runs a **slim Wrangler deploy** of the landing + docs. See [ADR-0005](docs/adr/0005-host-parquet-on-huggingface.md) and [ADR-0003](docs/adr/0003-cloudflare-pages-hosting.md) (superseded).

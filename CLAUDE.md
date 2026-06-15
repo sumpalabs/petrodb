@@ -2,7 +2,7 @@
 
 ### Issue tracker
 
-Issues live in GitHub Issues (`oskrgab/petrodb`). See `docs/agents/issue-tracker.md`.
+Issues live in GitHub Issues (`sumpalabs/petrodb`). See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
