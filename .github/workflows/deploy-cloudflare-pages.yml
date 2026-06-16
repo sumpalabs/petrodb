@@ -5,11 +5,13 @@ name: Deploy (Hugging Face data + Cloudflare landing)
 #     (`*.parquet` + `_files.json`) on a branch matching the GitHub ref. HF
 #     `resolve` URLs honour HTTP Range unconditionally, so DuckDB `httpfs`
 #     consumers get true row-group pushdown (Cloudflare Pages does not).
-#   - Cloudflare Pages carries the landing + schema docs (and, for now, still
-#     the parquet — removing it there is the next migration slice).
+#   - Cloudflare Pages carries the landing + schema docs ONLY — no parquet and
+#     no `_files.json` (ADR-0006). A slim staging tree is rsync'd under a
+#     `/petrodb/` path (origin path == public path) so the sumpalabs umbrella
+#     router can pass-through proxy `sumpalabs.com/petrodb/*` with no rewriting.
 #
 # Branch → environment mapping is shared by both targets:
-#   - push to `main`   → HF `main` revision + wrangler --branch main   → production (petrodb.ocortez.com)
+#   - push to `main`   → HF `main` revision + wrangler --branch main   → production (sumpalabs.com/petrodb/ via umbrella router)
 #   - push to `stage`  → HF `stage` branch  + wrangler --branch stage  → preview deployment
 #
 # Trigger: any push to main/stage that touches deployable content — committed
@@ -137,12 +139,30 @@ jobs:
           --revision ${{ github.ref_name }}
           --commit-message "CI deploy: dataset card from ${{ github.sha }}"
 
+      # --- Cloudflare Pages: publish the slim landing only (ADR-0006) ---------
+      # Stage a subset of the parquet/ tree under `_site/petrodb/` so the origin
+      # path equals the public path the umbrella router serves
+      # (`sumpalabs.com/petrodb/*` → `<pages>/petrodb/*`, pass-through). Ship the
+      # landing (index.html + svg) and per-dataset schema docs (schema.md/json/sql
+      # + README.md); exclude all parquet bytes (now on HF, ADR-0005) and every
+      # `_files.json` discovery manifest. `--prune-empty-dirs` drops directories
+      # left empty after the excludes (e.g. observations/).
+      - name: Stage slim Cloudflare landing under /petrodb/
+        run: |
+          mkdir -p _site/petrodb
+          rsync -a --prune-empty-dirs \
+            --exclude '*.parquet' \
+            --exclude '_files.json' \
+            parquet/ _site/petrodb/
+          echo "Staged tree:"
+          find _site -type f | sort
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           command: >-
-            pages deploy parquet/
+            pages deploy _site/
             --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT }}
             --branch=${{ github.ref_name }}
