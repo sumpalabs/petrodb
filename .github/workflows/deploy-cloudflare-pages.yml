@@ -1,10 +1,16 @@
-name: Deploy to Cloudflare Pages
+name: Deploy (Hugging Face data + Cloudflare landing)
 
-# Single workflow handles both Cloudflare Pages environments:
-#   - push to `main`   → wrangler --branch main   → production (petrodb.ocortez.com)
-#   - push to `stage`  → wrangler --branch stage  → preview deployment
-# The Cloudflare project is the same for both; the `--branch` arg matches the
-# GitHub ref so the two GH branches map onto the project's two deployments.
+# Single workflow, two publish targets per push to main/stage (ADR-0005):
+#   - Hugging Face dataset `sumpalabs/petrodb` carries the parquet *bytes*
+#     (`*.parquet` + `_files.json`) on a branch matching the GitHub ref. HF
+#     `resolve` URLs honour HTTP Range unconditionally, so DuckDB `httpfs`
+#     consumers get true row-group pushdown (Cloudflare Pages does not).
+#   - Cloudflare Pages carries the landing + schema docs (and, for now, still
+#     the parquet — removing it there is the next migration slice).
+#
+# Branch → environment mapping is shared by both targets:
+#   - push to `main`   → HF `main` revision + wrangler --branch main   → production (petrodb.ocortez.com)
+#   - push to `stage`  → HF `stage` branch  + wrangler --branch stage  → preview deployment
 #
 # Trigger: any push to main/stage that touches deployable content — committed
 # datasets under `parquet/`, the 3W pipeline sources (whose outputs are
@@ -41,9 +47,10 @@ jobs:
     timeout-minutes: 30
     env:
       # Baked into `instances.parquet#source_url` so consumers can round-trip
-      # the catalog to Observations URLs. Per-branch because main and stage
-      # serve from different Cloudflare custom domains; the catalog must
-      # reference the host where its own bytes are reachable.
+      # the catalog to Observations URLs. Per-branch because the two HF
+      # revisions (`/resolve/main/` vs `/resolve/stage/`) are distinct URL
+      # bases; the catalog must reference the host+revision where its own
+      # bytes are reachable. Points at the HF resolve bases (ADR-0005).
       BASE_URL: ${{ github.ref_name == 'main' && vars.BASE_URL_MAIN || vars.BASE_URL_STAGE }}
     steps:
       - name: Checkout repository
@@ -78,6 +85,57 @@ jobs:
       - name: Build Petrobras 3W parquet tree
         if: steps.cache-3w.outputs.cache-hit != 'true'
         run: uv run python -m scripts.run_pipeline.petrobras_3w
+
+      # --- Hugging Face: publish the parquet bytes (ADR-0005) -----------------
+      # Runs regardless of the 3W cache outcome — on a cache hit the generated
+      # tree is restored, so `parquet/` is fully populated either way. The
+      # huggingface_hub CLI (`hf`) installs independently of the uv steps,
+      # which are gated on the cache miss. hf_xet enables the fast Xet upload
+      # backend HF uses for content-addressed storage.
+      - name: Install Hugging Face CLI
+        run: pipx install "huggingface_hub[cli,hf_xet]"
+
+      - name: Authenticate Hugging Face CLI
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: hf auth login --token "$HF_TOKEN"
+
+      # `main` exists by default; ensure the `stage` branch is present before
+      # uploading to it. `--exist-ok` makes the step idempotent across reruns.
+      - name: Ensure HF stage branch exists
+        if: github.ref_name == 'stage'
+        run: >-
+          hf repo branch create sumpalabs/petrodb stage
+          --repo-type dataset
+          --revision main
+          --exist-ok
+
+      # Single-commit upload of the parquet bytes only (`*.parquet` +
+      # `_files.json`); the landing/docs/svg stay Cloudflare-only. `--delete`
+      # prunes files no longer produced by the build so the HF branch stays in
+      # sync with the tree. Single commit (not upload-large-folder) because only
+      # `hf upload` supports the `--delete` sync semantics.
+      - name: Upload parquet bytes to Hugging Face
+        run: >-
+          hf upload sumpalabs/petrodb parquet .
+          --repo-type dataset
+          --revision ${{ github.ref_name }}
+          --include '**/*.parquet'
+          --include '**/_files.json'
+          --delete '**/*.parquet'
+          --delete '**/_files.json'
+          --commit-message "CI deploy: parquet tree from ${{ github.sha }}"
+
+      # HF requires a dataset card to host a dataset. The card is the committed
+      # source of truth at hf/README.md (kept outside parquet/ so it stays out
+      # of the Cloudflare `pages deploy parquet/` tree); upload it to the repo
+      # root README.md.
+      - name: Upload Hugging Face dataset card
+        run: >-
+          hf upload sumpalabs/petrodb hf/README.md README.md
+          --repo-type dataset
+          --revision ${{ github.ref_name }}
+          --commit-message "CI deploy: dataset card from ${{ github.sha }}"
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
