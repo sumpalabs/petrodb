@@ -75,7 +75,7 @@ is a direct fetch — no manifest or wildcard needed:
 ```sql
 SELECT DEPTH_MD, GR, RHOB, NPHI, RDEP, "GROUP", FORMATION,
        FORCE_2020_LITHOFACIES_LITHOLOGY AS lithology
-FROM 'https://dev-petrodb.ocortez.com/force_2020/wells/15-9-13.parquet'
+FROM 'https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/15-9-13.parquet'
 ORDER BY DEPTH_MD;
 ```
 
@@ -88,7 +88,7 @@ the `_files.json` manifest first, then hand DuckDB the explicit list of URLs
 ```python
 import json, urllib.request, duckdb
 
-base = 'https://dev-petrodb.ocortez.com/force_2020/wells/'
+base = 'https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/'
 manifest = json.load(urllib.request.urlopen(base + '_files.json'))
 urls = [base + name for name in manifest]
 
@@ -107,7 +107,7 @@ duckdb.sql("""
 ```python
 import json, urllib.request, duckdb
 
-base = 'https://dev-petrodb.ocortez.com/force_2020/wells/'
+base = 'https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/'
 urls = [base + n for n in json.load(urllib.request.urlopen(base + '_files.json'))]
 
 duckdb.sql("""
@@ -130,7 +130,7 @@ dropping its URL from the read list:
 ```python
 import json, urllib.request, duckdb
 
-base = 'https://dev-petrodb.ocortez.com/force_2020/wells/'
+base = 'https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/'
 manifest = json.load(urllib.request.urlopen(base + '_files.json'))
 
 held_out = '15-9-13.parquet'

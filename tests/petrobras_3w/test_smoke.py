@@ -363,8 +363,10 @@ def test_website_integration_is_idempotent(tmp_path: Path) -> None:
     assert "petrobras_3w/wells.parquet" in first_index
     # The Observations manifest is surfaced.
     assert "petrobras_3w/observations/_files.json" in first_index
-    # The observations hive-glob query example is on the index page.
-    assert "observations/event_class=8/*.parquet" in first_index
+    # The observations query example uses manifest-based discovery filtered to
+    # one event_class partition, never a glob (ADR-0004).
+    assert "observations/event_class=8/*.parquet" not in first_index
+    assert "event_class=8/" in first_index
     # Pin metadata is surfaced on the site.
     assert PIN_GIT_TAG in first_index
     assert PIN_DATASET_VERSION in first_index
@@ -1063,13 +1065,16 @@ def test_observations_manifest_lists_every_file(tmp_path: Path) -> None:
 
 
 def test_observations_query_pattern_in_readme(tmp_path: Path) -> None:
-    """The published README documents the hive-glob query pattern with
-    `well_kind = 'real'` filtering (parallel to the acceptance criterion).
+    """The published README documents manifest-based Observations access
+    (ADR-0004: discover via `_files.json`, filter one event_class partition,
+    never a `*.parquet` glob) with `well_kind = 'real'` filtering.
     """
     _, out_dir, _ = _run_pipeline(tmp_path)
 
     readme = (out_dir / "README.md").read_text()
-    assert "observations/event_class=8/*.parquet" in readme
+    assert "observations/event_class=8/*.parquet" not in readme
+    assert "observations/_files.json" in readme
+    assert "event_class=8/" in readme
     assert "well_kind = 'real'" in readme
 
 

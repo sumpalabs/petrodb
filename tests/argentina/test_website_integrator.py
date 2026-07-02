@@ -115,12 +115,16 @@ def test_integrate_readme_includes_duckdb_query_example(website_root: Path) -> N
     """The blurb must carry a copy-pasteable DuckDB query example."""
     website_integrator.integrate(website_root, _YEARS)
     body = (website_root / "README.md").read_text()
-    assert "import duckdb" in body
+    assert "import json, urllib.request, duckdb" in body
     assert "duckdb.sql(" in body
-    # The example uses the published HTTP URLs so it works without download.
+    # The example uses the published HTTP URLs so it works without download
+    # (dev Caddy host is the no-env fallback; CI sets BASE_URL to the HF base).
     assert "https://dev-petrodb.ocortez.com/argentina/" in body
-    # And exercises the partitioned monthly series.
-    assert "monthly_production/anio=*/data.parquet" in body
+    # And exercises the partitioned monthly series via manifest-based discovery,
+    # never a glob (ADR-0004): the file list comes from `_files.json`.
+    assert "monthly_production/anio=*/data.parquet" not in body
+    assert "_files.json" in body
+    assert "read_parquet(?" in body
     assert "hive_partitioning = true" in body
 
 
@@ -142,12 +146,17 @@ def test_integrate_adds_argentina_tab_content_to_index_html(
     website_integrator.integrate(website_root, _YEARS)
     body = (website_root / "parquet" / "index.html").read_text()
     assert 'id="argentina-tab"' in body
-    # Single-file tables, the manifest, and the schema docs.
+    # Parquet + manifest download links are absolute (HF resolve base per
+    # ADR-0005; the landing no longer serves the bytes, ADR-0006).
     for artifact in (
         "argentina/wells.parquet",
         "argentina/well_operator_history.parquet",
         "argentina/well_events.parquet",
         "argentina/monthly_production/_files.json",
+    ):
+        assert f'/{artifact}"' in body, f"missing data link to {artifact}"
+    # Schema-doc links stay relative — the docs ship alongside index.html.
+    for artifact in (
         "argentina/README.md",
         "argentina/schema.md",
         "argentina/schema.json",
@@ -186,7 +195,7 @@ def test_integrate_renders_per_year_download_buttons(website_root: Path) -> None
     # Spot-check first/last and a middle year.
     for year in (_YEARS[0], 2015, _YEARS[-1]):
         assert (
-            f'href="argentina/monthly_production/anio={year}/data.parquet"' in body
+            f'/argentina/monthly_production/anio={year}/data.parquet"' in body
         ), f"missing per-year href for {year}"
         assert f'download="monthly_production_{year}.parquet"' in body, (
             f"missing custom download filename for {year}"

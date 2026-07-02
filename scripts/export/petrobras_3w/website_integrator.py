@@ -20,6 +20,7 @@ from pathlib import Path
 from scripts.transform.petrobras_3w.constants import (
     PIN_DATASET_VERSION,
     PIN_GIT_TAG,
+    PUBLIC_BASE_URL,
     UPSTREAM_REPO_URL,
 )
 
@@ -72,7 +73,7 @@ Measure the labelled-data balance across the corpus from the catalog alone
 ```python
 import duckdb
 
-base = 'https://dev-petrodb.ocortez.com/petrobras_3w'
+base = '{PUBLIC_BASE_URL}'
 result = duckdb.sql(f\"\"\"
     SELECT
         et.event_class,
@@ -130,19 +131,19 @@ def _index_tab_content_payload() -> str:
                     hive-partitioned by <code>event_class</code>.
                 </p>
                 <div class="download-grid">
-                    <a href="petrobras_3w/event_types.parquet" class="download-button" download>
+                    <a href="{PUBLIC_BASE_URL}/event_types.parquet" class="download-button" download>
                         <span>event_types.parquet</span>
                         <span class="download-icon">⬇</span>
                     </a>
-                    <a href="petrobras_3w/wells.parquet" class="download-button" download>
+                    <a href="{PUBLIC_BASE_URL}/wells.parquet" class="download-button" download>
                         <span>wells.parquet</span>
                         <span class="download-icon">⬇</span>
                     </a>
-                    <a href="petrobras_3w/instances.parquet" class="download-button" download>
+                    <a href="{PUBLIC_BASE_URL}/instances.parquet" class="download-button" download>
                         <span>instances.parquet</span>
                         <span class="download-icon">⬇</span>
                     </a>
-                    <a href="petrobras_3w/observations/_files.json" class="download-button">
+                    <a href="{PUBLIC_BASE_URL}/observations/_files.json" class="download-button">
                         <span>observations/_files.json</span>
                         <span class="download-icon">📜</span>
                     </a>
@@ -209,7 +210,7 @@ def _index_tab_content_payload() -> str:
                     </div>
                     <pre><span class="keyword">import</span> duckdb
 
-base = <span class="string">'https://dev-petrodb.ocortez.com/petrobras_3w'</span>
+base = <span class="string">'{PUBLIC_BASE_URL}'</span>
 result = duckdb.<span class="function">sql</span>(<span class="function">f</span><span class="string">\"\"\"
     SELECT
         et.event_class,
@@ -224,13 +225,16 @@ result = duckdb.<span class="function">sql</span>(<span class="function">f</span
 \"\"\"</span>).<span class="function">df</span>()</pre>
                 </div>
                 <p>
-                    The per-Instance Observations files are accessible via the
-                    hive-partitioned URL pattern
+                    The per-Instance Observations files live under the
+                    hive-partitioned path
                     <code>observations/event_class=N/&lt;instance_id&gt;.parquet</code>.
-                    Each file embeds <code>instance_id</code>, <code>well_id</code>,
-                    and <code>well_kind</code> as constant columns, so corpus-wide
-                    queries against a single event class do not need to join the
-                    catalog:
+                    The static host serves no directory listing, so discover the
+                    files from <code>observations/_files.json</code> and filter by
+                    the <code>event_class=8/</code> prefix (ADR-0004) rather than
+                    globbing. Each file embeds <code>instance_id</code>,
+                    <code>well_id</code>, and <code>well_kind</code> as constant
+                    columns, so corpus-wide queries against a single event class
+                    do not need to join the catalog:
                 </p>
                 <div class="code-block">
                     <div class="code-header">
@@ -238,10 +242,19 @@ result = duckdb.<span class="function">sql</span>(<span class="function">f</span
                         <span class="code-dot"></span>
                         <span class="code-dot"></span>
                     </div>
-                    <pre><span class="comment">-- All real-Well Hydrate-in-Production-Line observations</span>
-SELECT instance_id, well_id, <span class="string">"timestamp"</span>, <span class="string">"P-PDG"</span>, <span class="string">"T-PDG"</span>, class
-FROM <span class="string">'https://dev-petrodb.ocortez.com/petrobras_3w/observations/event_class=8/*.parquet'</span>
-WHERE well_kind = <span class="string">'real'</span>;</pre>
+                    <pre><span class="keyword">import</span> json, urllib.request, duckdb
+
+<span class="comment"># All real-Well Hydrate-in-Production-Line (event_class=8) observations</span>
+base = <span class="string">'{PUBLIC_BASE_URL}/observations/'</span>
+manifest = json.<span class="function">load</span>(urllib.request.<span class="function">urlopen</span>(base + <span class="string">'_files.json'</span>))
+urls = [base + p <span class="keyword">for</span> p <span class="keyword">in</span> manifest <span class="keyword">if</span> p.<span class="function">startswith</span>(<span class="string">'event_class=8/'</span>)]
+
+duckdb.<span class="function">sql</span>(<span class="string">\"\"\"
+    SELECT instance_id, well_id, "timestamp", "P-PDG", "T-PDG", class
+    FROM read_parquet(?)
+    WHERE well_kind = 'real'
+    ORDER BY instance_id, "timestamp"
+\"\"\"</span>, params=[urls]).<span class="function">show</span>()</pre>
                 </div>
             </section>
 

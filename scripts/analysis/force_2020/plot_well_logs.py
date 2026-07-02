@@ -23,6 +23,7 @@ Example:
 """
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -35,7 +36,15 @@ import polars as pl
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-BASE_URL = "https://dev-petrodb.ocortez.com/force_2020/wells"
+# Data lives on Hugging Face (ADR-0005); `resolve` URLs honour HTTP Range so
+# DuckDB `httpfs` fetches only the row groups a query needs. Override with the
+# `BASE_URL` env var to point at a local Caddy dev host or a frozen HF revision.
+BASE_URL = (
+    os.environ.get(
+        "BASE_URL", "https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main"
+    ).rstrip("/")
+    + "/force_2020/wells"
+)
 COLUMNS = ["DEPTH_MD", "GR", "RHOB", "NPHI", "RDEP"]
 
 # Track scales

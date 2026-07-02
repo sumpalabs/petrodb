@@ -29,6 +29,7 @@ import duckdb
 from scripts.transform.petrobras_3w.constants import (
     PIN_DATASET_VERSION,
     PIN_GIT_TAG,
+    PUBLIC_BASE_URL,
     UPSTREAM_REPO_URL,
 )
 from scripts.transform.petrobras_3w.upstream_stager import DatasetIni
@@ -522,7 +523,9 @@ def _write_schema_md(
 
 
 def _write_readme(schemas: dict[str, dict], path: Path) -> None:
-    base_url = "https://dev-petrodb.ocortez.com/petrobras_3w"
+    # HF resolve base in CI (ADR-0005), dev Caddy host locally; the
+    # `/petrobras_3w` segment is appended by `constants.PUBLIC_BASE_URL`.
+    base_url = PUBLIC_BASE_URL
     lines: list[str] = []
     lines.append("# Petrobras 3W Dataset")
     lines.append("")
@@ -692,18 +695,31 @@ def _write_readme(schemas: dict[str, dict], path: Path) -> None:
     lines.append("### Load all real-Well Observations of one event class")
     lines.append("")
     lines.append(
-        "The Observations tree is hive-partitioned by `event_class`, so a "
-        "wildcard against one partition is a pruned scan — DuckDB only "
-        "touches files under that path. Each file carries `instance_id`, "
-        "`well_id`, `well_kind` as constant columns, so consumers can "
-        "filter by Well or provenance without joining the catalog:"
+        "The Observations tree is hive-partitioned by `event_class`, but the "
+        "static host serves no directory listing, so a `*.parquet` glob "
+        "cannot be resolved. Per "
+        "[ADR-0004](../../docs/adr/0004-multi-parquet-table-convention.md), "
+        "discover the files from `observations/_files.json` (paths relative "
+        "to `observations/`, so the `event_class=8/` prefix selects one "
+        "partition) and hand DuckDB the explicit URL list. Each file carries "
+        "`instance_id`, `well_id`, `well_kind` as constant columns, so "
+        "consumers can filter by Well or provenance without joining the "
+        "catalog:"
     )
     lines.append("")
-    lines.append("```sql")
-    lines.append('SELECT instance_id, well_id, "timestamp", "P-PDG", "T-PDG", class')
-    lines.append(f"FROM '{base_url}/observations/event_class=8/*.parquet'")
-    lines.append("WHERE well_kind = 'real'")
-    lines.append('ORDER BY instance_id, "timestamp";')
+    lines.append("```python")
+    lines.append("import json, urllib.request, duckdb")
+    lines.append("")
+    lines.append(f"base = '{base_url}/observations/'")
+    lines.append("manifest = json.load(urllib.request.urlopen(base + '_files.json'))")
+    lines.append("urls = [base + p for p in manifest if p.startswith('event_class=8/')]")
+    lines.append("")
+    lines.append("duckdb.sql(\"\"\"")
+    lines.append('    SELECT instance_id, well_id, "timestamp", "P-PDG", "T-PDG", class')
+    lines.append("    FROM read_parquet(?)")
+    lines.append("    WHERE well_kind = 'real'")
+    lines.append('    ORDER BY instance_id, "timestamp"')
+    lines.append("\"\"\", params=[urls]).show()")
     lines.append("```")
     lines.append("")
     lines.append("### Fetch one specific Instance by `source_url`")

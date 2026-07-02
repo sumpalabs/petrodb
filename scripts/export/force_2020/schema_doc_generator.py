@@ -28,6 +28,7 @@ Run from the repo root::
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import duckdb
@@ -35,8 +36,15 @@ import duckdb
 DATASET_DIR = Path("parquet/force_2020")
 WELLS_DIR = DATASET_DIR / "wells"
 
-# Base URL the access examples read from (matches the other dataset READMEs).
-BASE_URL = "https://dev-petrodb.ocortez.com/force_2020"
+# Base URL the access examples read from. Sourced from `BASE_URL` (the HF
+# resolve base in CI, per ADR-0005) so the published docs point at the host
+# that actually serves the bytes; local runs fall through to the dev Caddy
+# host. The `/force_2020` suffix matches this dataset's directory under
+# `parquet/`, mirroring the 3W constants convention.
+BASE_URL = (
+    os.environ.get("BASE_URL", "https://dev-petrodb.ocortez.com").rstrip("/")
+    + "/force_2020"
+)
 
 # Sourced from the FORCE 2020 Machine Predicted Lithology challenge.
 UPSTREAM = {

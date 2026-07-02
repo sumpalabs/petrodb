@@ -14,7 +14,21 @@ re-running the export replaces the block in place rather than appending
 a duplicate.
 """
 
+import os
 from pathlib import Path
+
+# ---------------------------------------------------------------------------
+# Data host
+# ---------------------------------------------------------------------------
+
+# `BASE_URL` is the HF resolve base in CI (ADR-0005); local runs fall through
+# to the dev Caddy host. `/argentina` matches this dataset's directory under
+# `parquet/`. Used for both the example queries and the parquet/_files.json
+# download links — the landing (Cloudflare) no longer carries the bytes
+# (ADR-0006), so those links must be absolute HF URLs. Schema-doc links stay
+# relative because the docs are still served alongside index.html.
+BASE_URL = os.environ.get("BASE_URL", "https://dev-petrodb.ocortez.com").rstrip("/")
+ARGENTINA_BASE_URL = f"{BASE_URL}/argentina"
 
 # ---------------------------------------------------------------------------
 # Sentinel markers
@@ -71,7 +85,7 @@ def integrate(website_root: Path, years: list[int]) -> None:
 
 
 def _readme_payload() -> str:
-    return """\
+    return f"""\
 
 ### Argentina Production Data
 Monthly oil and gas production for ~85,418 wells in Argentina (2006–present),
@@ -82,24 +96,27 @@ sourced from the Secretaría de Energía public datasets:
 - **monthly_production/** — hive-partitioned by `anio`, ~17.6M rows total
 
 Aggregate 2023 production by basin, joining `wells` to the partitioned
-monthly time series:
+monthly time series. The static host serves no directory listing, so the
+partition files are discovered from the `_files.json` manifest rather than
+globbed (ADR-0004):
 
 ```python
-import duckdb
+import json, urllib.request, duckdb
 
-result = duckdb.sql(\"\"\"
+base = '{ARGENTINA_BASE_URL}/monthly_production/'
+manifest = json.load(urllib.request.urlopen(base + '_files.json'))
+urls = [base + p for p in manifest if p.startswith('anio=2023/')]
+
+result = duckdb.sql(f\"\"\"
     SELECT w.cuenca,
            SUM(m.prod_pet) AS oil_m3,
            SUM(m.prod_gas) AS gas_mm3
-    FROM 'https://dev-petrodb.ocortez.com/argentina/wells.parquet' w
-    JOIN read_parquet(
-      'https://dev-petrodb.ocortez.com/argentina/monthly_production/anio=*/data.parquet',
-      hive_partitioning = true
-    ) m USING (idpozo)
+    FROM '{ARGENTINA_BASE_URL}/wells.parquet' w
+    JOIN read_parquet(?, hive_partitioning = true) m USING (idpozo)
     WHERE m.anio = 2023
     GROUP BY w.cuenca
     ORDER BY oil_m3 DESC
-\"\"\").df()
+\"\"\", params=[urls]).df()
 ```
 
 Full per-column English docs (Spanish column identifiers preserved), the
@@ -137,7 +154,7 @@ def _index_tab_button_payload() -> str:
 
 def _index_tab_content_payload(years: list[int]) -> str:
     year_buttons = "\n".join(
-        f'                        <a href="argentina/monthly_production/anio={y}/data.parquet"'
+        f'                        <a href="{ARGENTINA_BASE_URL}/monthly_production/anio={y}/data.parquet"'
         f' download="monthly_production_{y}.parquet" class="download-button">\n'
         f"                            <span>{y}</span>\n"
         f'                            <span class="download-icon">⬇</span>\n'
@@ -156,15 +173,15 @@ def _index_tab_content_payload(years: list[int]) -> str:
                     ({year_range}). Spanish column names preserved from source.
                 </p>
                 <div class="download-grid">
-                    <a href="argentina/wells.parquet" class="download-button" download>
+                    <a href="{ARGENTINA_BASE_URL}/wells.parquet" class="download-button" download>
                         <span>wells.parquet</span>
                         <span class="download-icon">⬇</span>
                     </a>
-                    <a href="argentina/well_operator_history.parquet" class="download-button" download>
+                    <a href="{ARGENTINA_BASE_URL}/well_operator_history.parquet" class="download-button" download>
                         <span>well_operator_history.parquet</span>
                         <span class="download-icon">⬇</span>
                     </a>
-                    <a href="argentina/well_events.parquet" class="download-button" download>
+                    <a href="{ARGENTINA_BASE_URL}/well_events.parquet" class="download-button" download>
                         <span>well_events.parquet</span>
                         <span class="download-icon">⬇</span>
                     </a>
@@ -175,7 +192,7 @@ def _index_tab_content_payload(years: list[int]) -> str:
                     <span style="font-weight: normal; color: var(--text-secondary); font-size: 0.9em;">(hive-partitioned by year)</span>
                 </h3>
                 <div class="download-grid" style="margin-bottom: 12px;">
-                    <a href="argentina/monthly_production/_files.json" class="download-button">
+                    <a href="{ARGENTINA_BASE_URL}/monthly_production/_files.json" class="download-button">
                         <span>_files.json &nbsp;·&nbsp; manifest for read_parquet / httpfs</span>
                         <span class="download-icon">{{}}</span>
                     </a>
@@ -233,7 +250,9 @@ def _index_tab_content_payload(years: list[int]) -> str:
                 <h2>Quick Start with DuckDB</h2>
                 <p>
                     Aggregate 2023 production by basin, joining the static well master
-                    to the hive-partitioned monthly series:
+                    to the hive-partitioned monthly series. The static host serves no
+                    directory listing, so the partition files are discovered from the
+                    <code>_files.json</code> manifest rather than globbed (ADR-0004):
                 </p>
                 <div class="code-block">
                     <div class="code-header">
@@ -241,22 +260,23 @@ def _index_tab_content_payload(years: list[int]) -> str:
                         <span class="code-dot"></span>
                         <span class="code-dot"></span>
                     </div>
-                    <pre><span class="keyword">import</span> duckdb
+                    <pre><span class="keyword">import</span> json, urllib.request, duckdb
 
-<span class="comment"># Aggregate 2023 production by basin</span>
-result = duckdb.<span class="function">sql</span>(<span class="string">\"\"\"
+<span class="comment"># Discover the 2023 partition from the manifest, then aggregate by basin</span>
+base = <span class="string">'{ARGENTINA_BASE_URL}/monthly_production/'</span>
+manifest = json.<span class="function">load</span>(urllib.request.<span class="function">urlopen</span>(base + <span class="string">'_files.json'</span>))
+urls = [base + p <span class="keyword">for</span> p <span class="keyword">in</span> manifest <span class="keyword">if</span> p.<span class="function">startswith</span>(<span class="string">'anio=2023/'</span>)]
+
+result = duckdb.<span class="function">sql</span>(<span class="function">f</span><span class="string">\"\"\"
     SELECT w.cuenca,
            SUM(m.prod_pet) AS oil_m3,
            SUM(m.prod_gas) AS gas_mm3
-    FROM 'argentina/wells.parquet' w
-    JOIN read_parquet(
-      'argentina/monthly_production/anio=*/data.parquet',
-      hive_partitioning = true
-    ) m USING (idpozo)
+    FROM '{ARGENTINA_BASE_URL}/wells.parquet' w
+    JOIN read_parquet(?, hive_partitioning = true) m USING (idpozo)
     WHERE m.anio = 2023
     GROUP BY w.cuenca
     ORDER BY oil_m3 DESC
-\"\"\"</span>).<span class="function">df</span>()</pre>
+\"\"\"</span>, params=[urls]).<span class="function">df</span>()</pre>
                 </div>
                 <p>
                     Three more canonical patterns (single-well lookup, year-range

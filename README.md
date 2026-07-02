@@ -27,24 +27,27 @@ sourced from the Secretaría de Energía public datasets:
 - **monthly_production/** — hive-partitioned by `anio`, ~17.6M rows total
 
 Aggregate 2023 production by basin, joining `wells` to the partitioned
-monthly time series:
+monthly time series. The static host serves no directory listing, so the
+partition files are discovered from the `_files.json` manifest rather than
+globbed (ADR-0004):
 
 ```python
-import duckdb
+import json, urllib.request, duckdb
 
-result = duckdb.sql("""
+base = 'https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/monthly_production/'
+manifest = json.load(urllib.request.urlopen(base + '_files.json'))
+urls = [base + p for p in manifest if p.startswith('anio=2023/')]
+
+result = duckdb.sql(f"""
     SELECT w.cuenca,
            SUM(m.prod_pet) AS oil_m3,
            SUM(m.prod_gas) AS gas_mm3
-    FROM 'https://dev-petrodb.ocortez.com/argentina/wells.parquet' w
-    JOIN read_parquet(
-      'https://dev-petrodb.ocortez.com/argentina/monthly_production/anio=*/data.parquet',
-      hive_partitioning = true
-    ) m USING (idpozo)
+    FROM 'https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/wells.parquet' w
+    JOIN read_parquet(?, hive_partitioning = true) m USING (idpozo)
     WHERE m.anio = 2023
     GROUP BY w.cuenca
     ORDER BY oil_m3 DESC
-""").df()
+""", params=[urls]).df()
 ```
 
 Full per-column English docs (Spanish column identifiers preserved), the
@@ -68,7 +71,7 @@ Measure the labelled-data balance across the corpus from the catalog alone
 ```python
 import duckdb
 
-base = 'https://dev-petrodb.ocortez.com/petrobras_3w'
+base = 'https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/petrobras_3w'
 result = duckdb.sql(f"""
     SELECT
         et.event_class,
@@ -98,43 +101,49 @@ Browse and download files at: **https://dev-petrodb.ocortez.com**
 
 Query directly with DuckDB (no download required):
 
-```python
-import duckdb
+Data lives on Hugging Face ([`sumpalabs/petrodb`](https://huggingface.co/datasets/sumpalabs/petrodb)); its `resolve` URLs honour HTTP Range so DuckDB fetches only the row groups a query needs.
 
+```python
+import json, urllib.request, duckdb
+
+HF = "https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main"
 conn = duckdb.connect()
 
 # Query Volve production data
-volve = conn.execute("""
+volve = conn.execute(f"""
     SELECT
         w.wellbore_name,
         SUM(d.oil_volume) as total_oil,
         SUM(d.gas_volume) as total_gas
-    FROM 'https://dev-petrodb.ocortez.com/volve/daily_production.parquet' d
-    JOIN 'https://dev-petrodb.ocortez.com/volve/wells.parquet' w
+    FROM '{HF}/volve/daily_production.parquet' d
+    JOIN '{HF}/volve/wells.parquet' w
         ON d.npd_wellbore_code = w.npd_wellbore_code
     GROUP BY w.wellbore_name
     ORDER BY total_oil DESC
 """).fetchdf()
 
-# Query Force 2020 well logs
-force = conn.execute("""
+# Query Force 2020 well logs (one Parquet file per well)
+force = conn.execute(f"""
     SELECT
         WELL,
         AVG(GR) as avg_gamma_ray,
         AVG(RHOB) as avg_density,
         COUNT(*) as samples
-    FROM 'https://dev-petrodb.ocortez.com/force_2020/wells/15-9-13.parquet'
+    FROM '{HF}/force_2020/wells/15-9-13.parquet'
     GROUP BY WELL
 """).fetchdf()
 
-# Query all 108 wells at once with wildcard
+# Query all 108 wells at once — discover files from the manifest, never a glob
+# (the static host has no directory listing, see docs/adr/0004-...)
+base = f"{HF}/force_2020/wells/"
+urls = [base + n for n in json.load(urllib.request.urlopen(base + "_files.json"))]
 all_wells = conn.execute("""
     SELECT WELL, FORMATION, COUNT(*) as samples
-    FROM 'https://dev-petrodb.ocortez.com/force_2020/wells/*.parquet'
+    FROM read_parquet(?)
     WHERE FORMATION IS NOT NULL
     GROUP BY WELL, FORMATION
     ORDER BY WELL, samples DESC
-""").fetchdf()
+""", [urls]).fetchdf()
 ```
 
 Or download files locally and query:

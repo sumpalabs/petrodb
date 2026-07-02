@@ -279,12 +279,14 @@ def test_pipeline_emits_wells_parquet(tmp_path: Path) -> None:
     schema_md = (out_dir / "schema.md").read_text()
     assert "tef" in schema_md and "vida_util" in schema_md
     readme = (out_dir / "README.md").read_text()
-    assert "generate_series" in readme and "_files.json" in readme
+    # Manifest-based discovery (ADR-0004), never glob-based access.
+    assert "_files.json" in readme and "read_parquet(?" in readme
+    assert "anio=*/data.parquet" not in readme
 
     # Website integration — the static site must surface the dataset.
     site_readme = (site_root / "README.md").read_text()
     assert "### Argentina Production Data" in site_readme
-    assert "import duckdb" in site_readme
+    assert "import json, urllib.request, duckdb" in site_readme
     site_index = (site_root / "parquet" / "index.html").read_text()
     assert 'data-tab="argentina"' in site_index
     assert 'id="argentina-tab"' in site_index

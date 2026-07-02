@@ -243,8 +243,9 @@ def test_readme_contains_four_canonical_query_examples(
     assert "WHERE idpozo = 12345" in body  # single-well
     assert "BETWEEN 2018 AND 2022" in body  # year-range
     assert "GROUP BY w.cuenca" in body  # basin aggregate
-    assert "generate_series" in body  # manifest URL-template
-    assert "_files.json" in body  # manifest reference
+    assert "read_parquet(?" in body  # explicit URL list, not a glob
+    assert "_files.json" in body  # manifest-based discovery (ADR-0004)
+    assert "anio=*/data.parquet" not in body  # never glob-based access
 
 
 def test_readme_lists_dropped_admin_columns_and_identifier_note(

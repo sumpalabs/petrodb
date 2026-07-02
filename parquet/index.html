@@ -1046,15 +1046,15 @@
             <div class="download-section">
                 <h2>Download Parquet Files</h2>
                 <div class="download-grid">
-                    <a href="volve/daily_production.parquet" class="download-button" download>
+                    <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/volve/daily_production.parquet" class="download-button" download>
                         <span>daily_production.parquet</span>
                         <span class="download-icon">⬇</span>
                     </a>
-                    <a href="volve/monthly_production.parquet" class="download-button" download>
+                    <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/volve/monthly_production.parquet" class="download-button" download>
                         <span>monthly_production.parquet</span>
                         <span class="download-icon">⬇</span>
                     </a>
-                    <a href="volve/wells.parquet" class="download-button" download>
+                    <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/volve/wells.parquet" class="download-button" download>
                         <span>wells.parquet</span>
                         <span class="download-icon">⬇</span>
                     </a>
@@ -1102,8 +1102,8 @@ result = con.<span class="function">execute</span>(<span class="string">"""
         SUM(d.oil_volume) as total_oil,
         SUM(d.gas_volume) as total_gas,
         SUM(d.water_volume) as total_water
-    FROM 'volve/daily_production.parquet' d
-    JOIN 'volve/wells.parquet' w
+    FROM 'https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/volve/daily_production.parquet' d
+    JOIN 'https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/volve/wells.parquet' w
         ON d.npd_wellbore_code = w.npd_wellbore_code
     WHERE d.date BETWEEN '2008-01-01' AND '2008-12-31'
     GROUP BY w.wellbore_name
@@ -1236,11 +1236,11 @@ result = con.<span class="function">execute</span>(<span class="string">"""
                         </div>
                         <div class="quadrant-content">
                             <div class="well-grid">
-                                <a href="force_2020/wells/7-1-1.parquet" class="well-file" data-well="7-1-1" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/7-1-1.parquet" class="well-file" data-well="7-1-1" download>
                                     <span>7-1-1.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/7-1-2_S.parquet" class="well-file" data-well="7-1-2_S" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/7-1-2_S.parquet" class="well-file" data-well="7-1-2_S" download>
                                     <span>7-1-2_S.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
@@ -1259,19 +1259,19 @@ result = con.<span class="function">execute</span>(<span class="string">"""
                         </div>
                         <div class="quadrant-content">
                             <div class="well-grid">
-                                <a href="force_2020/wells/15-9-13.parquet" class="well-file" data-well="15-9-13" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/15-9-13.parquet" class="well-file" data-well="15-9-13" download>
                                     <span>15-9-13.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/15-9-14.parquet" class="well-file" data-well="15-9-14" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/15-9-14.parquet" class="well-file" data-well="15-9-14" download>
                                     <span>15-9-14.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/15-9-15.parquet" class="well-file" data-well="15-9-15" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/15-9-15.parquet" class="well-file" data-well="15-9-15" download>
                                     <span>15-9-15.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/15-9-17.parquet" class="well-file" data-well="15-9-17" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/15-9-17.parquet" class="well-file" data-well="15-9-17" download>
                                     <span>15-9-17.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
@@ -1290,63 +1290,63 @@ result = con.<span class="function">execute</span>(<span class="string">"""
                         </div>
                         <div class="quadrant-content">
                             <div class="well-grid">
-                                <a href="force_2020/wells/16-1-2.parquet" class="well-file" data-well="16-1-2" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/16-1-2.parquet" class="well-file" data-well="16-1-2" download>
                                     <span>16-1-2.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/16-1-6_A.parquet" class="well-file" data-well="16-1-6_A" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/16-1-6_A.parquet" class="well-file" data-well="16-1-6_A" download>
                                     <span>16-1-6_A.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/16-2-6.parquet" class="well-file" data-well="16-2-6" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/16-2-6.parquet" class="well-file" data-well="16-2-6" download>
                                     <span>16-2-6.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/16-2-11_A.parquet" class="well-file" data-well="16-2-11_A" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/16-2-11_A.parquet" class="well-file" data-well="16-2-11_A" download>
                                     <span>16-2-11_A.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/16-2-16.parquet" class="well-file" data-well="16-2-16" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/16-2-16.parquet" class="well-file" data-well="16-2-16" download>
                                     <span>16-2-16.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/16-4-1.parquet" class="well-file" data-well="16-4-1" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/16-4-1.parquet" class="well-file" data-well="16-4-1" download>
                                     <span>16-4-1.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/16-5-3.parquet" class="well-file" data-well="16-5-3" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/16-5-3.parquet" class="well-file" data-well="16-5-3" download>
                                     <span>16-5-3.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/16-7-4.parquet" class="well-file" data-well="16-7-4" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/16-7-4.parquet" class="well-file" data-well="16-7-4" download>
                                     <span>16-7-4.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/16-7-5.parquet" class="well-file" data-well="16-7-5" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/16-7-5.parquet" class="well-file" data-well="16-7-5" download>
                                     <span>16-7-5.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/16-8-1.parquet" class="well-file" data-well="16-8-1" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/16-8-1.parquet" class="well-file" data-well="16-8-1" download>
                                     <span>16-8-1.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/16-10-1.parquet" class="well-file" data-well="16-10-1" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/16-10-1.parquet" class="well-file" data-well="16-10-1" download>
                                     <span>16-10-1.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/16-10-2.parquet" class="well-file" data-well="16-10-2" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/16-10-2.parquet" class="well-file" data-well="16-10-2" download>
                                     <span>16-10-2.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/16-10-3.parquet" class="well-file" data-well="16-10-3" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/16-10-3.parquet" class="well-file" data-well="16-10-3" download>
                                     <span>16-10-3.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/16-10-5.parquet" class="well-file" data-well="16-10-5" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/16-10-5.parquet" class="well-file" data-well="16-10-5" download>
                                     <span>16-10-5.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/16-11-1_ST3.parquet" class="well-file" data-well="16-11-1_ST3" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/16-11-1_ST3.parquet" class="well-file" data-well="16-11-1_ST3" download>
                                     <span>16-11-1_ST3.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
@@ -1365,7 +1365,7 @@ result = con.<span class="function">execute</span>(<span class="string">"""
                         </div>
                         <div class="quadrant-content">
                             <div class="well-grid">
-                                <a href="force_2020/wells/17-11-1.parquet" class="well-file" data-well="17-11-1" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/17-11-1.parquet" class="well-file" data-well="17-11-1" download>
                                     <span>17-11-1.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
@@ -1384,83 +1384,83 @@ result = con.<span class="function">execute</span>(<span class="string">"""
                         </div>
                         <div class="quadrant-content">
                             <div class="well-grid">
-                                <a href="force_2020/wells/25-2-7.parquet" class="well-file" data-well="25-2-7" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/25-2-7.parquet" class="well-file" data-well="25-2-7" download>
                                     <span>25-2-7.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/25-2-13_T4.parquet" class="well-file" data-well="25-2-13_T4" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/25-2-13_T4.parquet" class="well-file" data-well="25-2-13_T4" download>
                                     <span>25-2-13_T4.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/25-2-14.parquet" class="well-file" data-well="25-2-14" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/25-2-14.parquet" class="well-file" data-well="25-2-14" download>
                                     <span>25-2-14.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/25-3-1.parquet" class="well-file" data-well="25-3-1" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/25-3-1.parquet" class="well-file" data-well="25-3-1" download>
                                     <span>25-3-1.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/25-4-5.parquet" class="well-file" data-well="25-4-5" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/25-4-5.parquet" class="well-file" data-well="25-4-5" download>
                                     <span>25-4-5.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/25-5-1.parquet" class="well-file" data-well="25-5-1" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/25-5-1.parquet" class="well-file" data-well="25-5-1" download>
                                     <span>25-5-1.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/25-5-3.parquet" class="well-file" data-well="25-5-3" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/25-5-3.parquet" class="well-file" data-well="25-5-3" download>
                                     <span>25-5-3.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/25-5-4.parquet" class="well-file" data-well="25-5-4" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/25-5-4.parquet" class="well-file" data-well="25-5-4" download>
                                     <span>25-5-4.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/25-6-1.parquet" class="well-file" data-well="25-6-1" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/25-6-1.parquet" class="well-file" data-well="25-6-1" download>
                                     <span>25-6-1.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/25-6-2.parquet" class="well-file" data-well="25-6-2" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/25-6-2.parquet" class="well-file" data-well="25-6-2" download>
                                     <span>25-6-2.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/25-6-3.parquet" class="well-file" data-well="25-6-3" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/25-6-3.parquet" class="well-file" data-well="25-6-3" download>
                                     <span>25-6-3.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/25-7-2.parquet" class="well-file" data-well="25-7-2" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/25-7-2.parquet" class="well-file" data-well="25-7-2" download>
                                     <span>25-7-2.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/25-8-5_S.parquet" class="well-file" data-well="25-8-5_S" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/25-8-5_S.parquet" class="well-file" data-well="25-8-5_S" download>
                                     <span>25-8-5_S.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/25-8-7.parquet" class="well-file" data-well="25-8-7" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/25-8-7.parquet" class="well-file" data-well="25-8-7" download>
                                     <span>25-8-7.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/25-9-1.parquet" class="well-file" data-well="25-9-1" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/25-9-1.parquet" class="well-file" data-well="25-9-1" download>
                                     <span>25-9-1.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/25-10-10.parquet" class="well-file" data-well="25-10-10" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/25-10-10.parquet" class="well-file" data-well="25-10-10" download>
                                     <span>25-10-10.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/25-11-5.parquet" class="well-file" data-well="25-11-5" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/25-11-5.parquet" class="well-file" data-well="25-11-5" download>
                                     <span>25-11-5.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/25-11-15.parquet" class="well-file" data-well="25-11-15" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/25-11-15.parquet" class="well-file" data-well="25-11-15" download>
                                     <span>25-11-15.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/25-11-19_S.parquet" class="well-file" data-well="25-11-19_S" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/25-11-19_S.parquet" class="well-file" data-well="25-11-19_S" download>
                                     <span>25-11-19_S.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/25-11-24.parquet" class="well-file" data-well="25-11-24" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/25-11-24.parquet" class="well-file" data-well="25-11-24" download>
                                     <span>25-11-24.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
@@ -1479,7 +1479,7 @@ result = con.<span class="function">execute</span>(<span class="string">"""
                         </div>
                         <div class="quadrant-content">
                             <div class="well-grid">
-                                <a href="force_2020/wells/26-4-1.parquet" class="well-file" data-well="26-4-1" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/26-4-1.parquet" class="well-file" data-well="26-4-1" download>
                                     <span>26-4-1.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
@@ -1498,11 +1498,11 @@ result = con.<span class="function">execute</span>(<span class="string">"""
                         </div>
                         <div class="quadrant-content">
                             <div class="well-grid">
-                                <a href="force_2020/wells/29-3-1.parquet" class="well-file" data-well="29-3-1" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/29-3-1.parquet" class="well-file" data-well="29-3-1" download>
                                     <span>29-3-1.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/29-6-1.parquet" class="well-file" data-well="29-6-1" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/29-6-1.parquet" class="well-file" data-well="29-6-1" download>
                                     <span>29-6-1.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
@@ -1521,15 +1521,15 @@ result = con.<span class="function">execute</span>(<span class="string">"""
                         </div>
                         <div class="quadrant-content">
                             <div class="well-grid">
-                                <a href="force_2020/wells/30-3-3.parquet" class="well-file" data-well="30-3-3" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/30-3-3.parquet" class="well-file" data-well="30-3-3" download>
                                     <span>30-3-3.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/30-3-5_S.parquet" class="well-file" data-well="30-3-5_S" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/30-3-5_S.parquet" class="well-file" data-well="30-3-5_S" download>
                                     <span>30-3-5_S.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/30-6-5.parquet" class="well-file" data-well="30-6-5" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/30-6-5.parquet" class="well-file" data-well="30-6-5" download>
                                     <span>30-6-5.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
@@ -1548,59 +1548,59 @@ result = con.<span class="function">execute</span>(<span class="string">"""
                         </div>
                         <div class="quadrant-content">
                             <div class="well-grid">
-                                <a href="force_2020/wells/31-2-1.parquet" class="well-file" data-well="31-2-1" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/31-2-1.parquet" class="well-file" data-well="31-2-1" download>
                                     <span>31-2-1.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/31-2-7.parquet" class="well-file" data-well="31-2-7" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/31-2-7.parquet" class="well-file" data-well="31-2-7" download>
                                     <span>31-2-7.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/31-2-8.parquet" class="well-file" data-well="31-2-8" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/31-2-8.parquet" class="well-file" data-well="31-2-8" download>
                                     <span>31-2-8.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/31-2-9.parquet" class="well-file" data-well="31-2-9" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/31-2-9.parquet" class="well-file" data-well="31-2-9" download>
                                     <span>31-2-9.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/31-2-19_S.parquet" class="well-file" data-well="31-2-19_S" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/31-2-19_S.parquet" class="well-file" data-well="31-2-19_S" download>
                                     <span>31-2-19_S.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/31-3-1.parquet" class="well-file" data-well="31-3-1" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/31-3-1.parquet" class="well-file" data-well="31-3-1" download>
                                     <span>31-3-1.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/31-3-2.parquet" class="well-file" data-well="31-3-2" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/31-3-2.parquet" class="well-file" data-well="31-3-2" download>
                                     <span>31-3-2.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/31-3-3.parquet" class="well-file" data-well="31-3-3" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/31-3-3.parquet" class="well-file" data-well="31-3-3" download>
                                     <span>31-3-3.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/31-3-4.parquet" class="well-file" data-well="31-3-4" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/31-3-4.parquet" class="well-file" data-well="31-3-4" download>
                                     <span>31-3-4.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/31-4-5.parquet" class="well-file" data-well="31-4-5" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/31-4-5.parquet" class="well-file" data-well="31-4-5" download>
                                     <span>31-4-5.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/31-4-10.parquet" class="well-file" data-well="31-4-10" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/31-4-10.parquet" class="well-file" data-well="31-4-10" download>
                                     <span>31-4-10.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/31-5-4_S.parquet" class="well-file" data-well="31-5-4_S" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/31-5-4_S.parquet" class="well-file" data-well="31-5-4_S" download>
                                     <span>31-5-4_S.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/31-6-5.parquet" class="well-file" data-well="31-6-5" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/31-6-5.parquet" class="well-file" data-well="31-6-5" download>
                                     <span>31-6-5.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/31-6-8.parquet" class="well-file" data-well="31-6-8" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/31-6-8.parquet" class="well-file" data-well="31-6-8" download>
                                     <span>31-6-8.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
@@ -1619,7 +1619,7 @@ result = con.<span class="function">execute</span>(<span class="string">"""
                         </div>
                         <div class="quadrant-content">
                             <div class="well-grid">
-                                <a href="force_2020/wells/32-2-1.parquet" class="well-file" data-well="32-2-1" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/32-2-1.parquet" class="well-file" data-well="32-2-1" download>
                                     <span>32-2-1.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
@@ -1638,19 +1638,19 @@ result = con.<span class="function">execute</span>(<span class="string">"""
                         </div>
                         <div class="quadrant-content">
                             <div class="well-grid">
-                                <a href="force_2020/wells/33-5-2.parquet" class="well-file" data-well="33-5-2" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/33-5-2.parquet" class="well-file" data-well="33-5-2" download>
                                     <span>33-5-2.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/33-6-3_S.parquet" class="well-file" data-well="33-6-3_S" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/33-6-3_S.parquet" class="well-file" data-well="33-6-3_S" download>
                                     <span>33-6-3_S.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/33-9-1.parquet" class="well-file" data-well="33-9-1" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/33-9-1.parquet" class="well-file" data-well="33-9-1" download>
                                     <span>33-9-1.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/33-9-17.parquet" class="well-file" data-well="33-9-17" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/33-9-17.parquet" class="well-file" data-well="33-9-17" download>
                                     <span>33-9-17.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
@@ -1669,87 +1669,87 @@ result = con.<span class="function">execute</span>(<span class="string">"""
                         </div>
                         <div class="quadrant-content">
                             <div class="well-grid">
-                                <a href="force_2020/wells/34-2-4.parquet" class="well-file" data-well="34-2-4" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/34-2-4.parquet" class="well-file" data-well="34-2-4" download>
                                     <span>34-2-4.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/34-3-1_A.parquet" class="well-file" data-well="34-3-1_A" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/34-3-1_A.parquet" class="well-file" data-well="34-3-1_A" download>
                                     <span>34-3-1_A.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/34-3-3_A.parquet" class="well-file" data-well="34-3-3_A" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/34-3-3_A.parquet" class="well-file" data-well="34-3-3_A" download>
                                     <span>34-3-3_A.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/34-4-10_R.parquet" class="well-file" data-well="34-4-10_R" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/34-4-10_R.parquet" class="well-file" data-well="34-4-10_R" download>
                                     <span>34-4-10_R.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/34-5-1_A.parquet" class="well-file" data-well="34-5-1_A" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/34-5-1_A.parquet" class="well-file" data-well="34-5-1_A" download>
                                     <span>34-5-1_A.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/34-5-1_S.parquet" class="well-file" data-well="34-5-1_S" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/34-5-1_S.parquet" class="well-file" data-well="34-5-1_S" download>
                                     <span>34-5-1_S.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/34-6-1_S.parquet" class="well-file" data-well="34-6-1_S" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/34-6-1_S.parquet" class="well-file" data-well="34-6-1_S" download>
                                     <span>34-6-1_S.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/34-7-13.parquet" class="well-file" data-well="34-7-13" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/34-7-13.parquet" class="well-file" data-well="34-7-13" download>
                                     <span>34-7-13.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/34-7-20.parquet" class="well-file" data-well="34-7-20" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/34-7-20.parquet" class="well-file" data-well="34-7-20" download>
                                     <span>34-7-20.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/34-7-21.parquet" class="well-file" data-well="34-7-21" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/34-7-21.parquet" class="well-file" data-well="34-7-21" download>
                                     <span>34-7-21.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/34-8-1.parquet" class="well-file" data-well="34-8-1" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/34-8-1.parquet" class="well-file" data-well="34-8-1" download>
                                     <span>34-8-1.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/34-8-3.parquet" class="well-file" data-well="34-8-3" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/34-8-3.parquet" class="well-file" data-well="34-8-3" download>
                                     <span>34-8-3.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/34-8-7_R.parquet" class="well-file" data-well="34-8-7_R" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/34-8-7_R.parquet" class="well-file" data-well="34-8-7_R" download>
                                     <span>34-8-7_R.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/34-10-16_R.parquet" class="well-file" data-well="34-10-16_R" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/34-10-16_R.parquet" class="well-file" data-well="34-10-16_R" download>
                                     <span>34-10-16_R.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/34-10-19.parquet" class="well-file" data-well="34-10-19" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/34-10-19.parquet" class="well-file" data-well="34-10-19" download>
                                     <span>34-10-19.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/34-10-21.parquet" class="well-file" data-well="34-10-21" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/34-10-21.parquet" class="well-file" data-well="34-10-21" download>
                                     <span>34-10-21.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/34-10-33.parquet" class="well-file" data-well="34-10-33" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/34-10-33.parquet" class="well-file" data-well="34-10-33" download>
                                     <span>34-10-33.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/34-10-35.parquet" class="well-file" data-well="34-10-35" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/34-10-35.parquet" class="well-file" data-well="34-10-35" download>
                                     <span>34-10-35.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/34-11-1.parquet" class="well-file" data-well="34-11-1" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/34-11-1.parquet" class="well-file" data-well="34-11-1" download>
                                     <span>34-11-1.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/34-11-2_S.parquet" class="well-file" data-well="34-11-2_S" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/34-11-2_S.parquet" class="well-file" data-well="34-11-2_S" download>
                                     <span>34-11-2_S.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/34-12-1.parquet" class="well-file" data-well="34-12-1" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/34-12-1.parquet" class="well-file" data-well="34-12-1" download>
                                     <span>34-12-1.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
@@ -1768,79 +1768,79 @@ result = con.<span class="function">execute</span>(<span class="string">"""
                         </div>
                         <div class="quadrant-content">
                             <div class="well-grid">
-                                <a href="force_2020/wells/35-3-7_S.parquet" class="well-file" data-well="35-3-7_S" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/35-3-7_S.parquet" class="well-file" data-well="35-3-7_S" download>
                                     <span>35-3-7_S.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/35-4-1.parquet" class="well-file" data-well="35-4-1" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/35-4-1.parquet" class="well-file" data-well="35-4-1" download>
                                     <span>35-4-1.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/35-6-2_S.parquet" class="well-file" data-well="35-6-2_S" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/35-6-2_S.parquet" class="well-file" data-well="35-6-2_S" download>
                                     <span>35-6-2_S.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/35-8-4.parquet" class="well-file" data-well="35-8-4" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/35-8-4.parquet" class="well-file" data-well="35-8-4" download>
                                     <span>35-8-4.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/35-8-6_S.parquet" class="well-file" data-well="35-8-6_S" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/35-8-6_S.parquet" class="well-file" data-well="35-8-6_S" download>
                                     <span>35-8-6_S.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/35-9-2.parquet" class="well-file" data-well="35-9-2" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/35-9-2.parquet" class="well-file" data-well="35-9-2" download>
                                     <span>35-9-2.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/35-9-5.parquet" class="well-file" data-well="35-9-5" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/35-9-5.parquet" class="well-file" data-well="35-9-5" download>
                                     <span>35-9-5.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/35-9-6_S.parquet" class="well-file" data-well="35-9-6_S" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/35-9-6_S.parquet" class="well-file" data-well="35-9-6_S" download>
                                     <span>35-9-6_S.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/35-9-8.parquet" class="well-file" data-well="35-9-8" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/35-9-8.parquet" class="well-file" data-well="35-9-8" download>
                                     <span>35-9-8.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/35-9-10_S.parquet" class="well-file" data-well="35-9-10_S" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/35-9-10_S.parquet" class="well-file" data-well="35-9-10_S" download>
                                     <span>35-9-10_S.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/35-11-1.parquet" class="well-file" data-well="35-11-1" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/35-11-1.parquet" class="well-file" data-well="35-11-1" download>
                                     <span>35-11-1.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/35-11-6.parquet" class="well-file" data-well="35-11-6" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/35-11-6.parquet" class="well-file" data-well="35-11-6" download>
                                     <span>35-11-6.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/35-11-7.parquet" class="well-file" data-well="35-11-7" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/35-11-7.parquet" class="well-file" data-well="35-11-7" download>
                                     <span>35-11-7.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/35-11-10.parquet" class="well-file" data-well="35-11-10" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/35-11-10.parquet" class="well-file" data-well="35-11-10" download>
                                     <span>35-11-10.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/35-11-11.parquet" class="well-file" data-well="35-11-11" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/35-11-11.parquet" class="well-file" data-well="35-11-11" download>
                                     <span>35-11-11.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/35-11-12.parquet" class="well-file" data-well="35-11-12" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/35-11-12.parquet" class="well-file" data-well="35-11-12" download>
                                     <span>35-11-12.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/35-11-13.parquet" class="well-file" data-well="35-11-13" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/35-11-13.parquet" class="well-file" data-well="35-11-13" download>
                                     <span>35-11-13.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/35-11-15_S.parquet" class="well-file" data-well="35-11-15_S" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/35-11-15_S.parquet" class="well-file" data-well="35-11-15_S" download>
                                     <span>35-11-15_S.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
-                                <a href="force_2020/wells/35-12-1.parquet" class="well-file" data-well="35-12-1" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/35-12-1.parquet" class="well-file" data-well="35-12-1" download>
                                     <span>35-12-1.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
@@ -1859,7 +1859,7 @@ result = con.<span class="function">execute</span>(<span class="string">"""
                         </div>
                         <div class="quadrant-content">
                             <div class="well-grid">
-                                <a href="force_2020/wells/36-7-3.parquet" class="well-file" data-well="36-7-3" download>
+                                <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/36-7-3.parquet" class="well-file" data-well="36-7-3" download>
                                     <span>36-7-3.parquet</span>
                                     <span class="download-icon">⬇</span>
                                 </a>
@@ -1869,7 +1869,7 @@ result = con.<span class="function">execute</span>(<span class="string">"""
                 </div>
 
                 <div class="download-grid" style="margin-top: 16px;">
-                    <a href="force_2020/wells/_files.json" class="download-button">
+                    <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/_files.json" class="download-button">
                         <span>wells/_files.json &nbsp;·&nbsp; manifest for read_parquet / httpfs</span>
                         <span class="download-icon">{}</span>
                     </a>
@@ -1920,12 +1920,12 @@ result = con.<span class="function">execute</span>(<span class="string">"""
                         <span class="code-dot"></span>
                         <span class="code-dot"></span>
                     </div>
-                    <pre><span class="keyword">import</span> duckdb
+                    <pre><span class="keyword">import</span> json, urllib.request, duckdb
 
 <span class="comment"># Connect to DuckDB (in-memory)</span>
 con = duckdb.<span class="function">connect</span>()
 
-<span class="comment"># Analyze well 15-9-13</span>
+<span class="comment"># Analyze well 15-9-13 (one Parquet file per well)</span>
 result = con.<span class="function">execute</span>(<span class="string">"""
     SELECT
         WELL,
@@ -1934,21 +1934,25 @@ result = con.<span class="function">execute</span>(<span class="string">"""
         AVG(GR) as avg_gamma_ray,
         AVG(RHOB) as avg_density,
         COUNT(*) as samples
-    FROM 'force_2020/wells/15-9-13.parquet'
+    FROM 'https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/15-9-13.parquet'
     GROUP BY WELL
 """</span>).<span class="function">fetchall</span>()
 
 <span class="keyword">for</span> row <span class="keyword">in</span> result:
     <span class="function">print</span>(row)
 
-<span class="comment"># Query multiple wells at once</span>
+<span class="comment"># Query multiple wells at once — discover files from the manifest</span>
+<span class="comment"># (no glob; the static host has no directory listing, ADR-0004)</span>
+base = <span class="string">'https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/force_2020/wells/'</span>
+urls = [base + n <span class="keyword">for</span> n <span class="keyword">in</span> json.<span class="function">load</span>(urllib.request.<span class="function">urlopen</span>(base + <span class="string">'_files.json'</span>))]
+
 multi_well = con.<span class="function">execute</span>(<span class="string">"""
     SELECT WELL, FORMATION, COUNT(*) as samples
-    FROM 'force_2020/wells/*.parquet'
+    FROM read_parquet(?)
     WHERE FORMATION IS NOT NULL
     GROUP BY WELL, FORMATION
     ORDER BY WELL, samples DESC
-"""</span>).<span class="function">fetchall</span>()</pre>
+"""</span>, [urls]).<span class="function">fetchall</span>()</pre>
                 </div>
             </section>
 
@@ -2063,15 +2067,15 @@ multi_well = con.<span class="function">execute</span>(<span class="string">"""
                     (2006–2025). Spanish column names preserved from source.
                 </p>
                 <div class="download-grid">
-                    <a href="argentina/wells.parquet" class="download-button" download>
+                    <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/wells.parquet" class="download-button" download>
                         <span>wells.parquet</span>
                         <span class="download-icon">⬇</span>
                     </a>
-                    <a href="argentina/well_operator_history.parquet" class="download-button" download>
+                    <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/well_operator_history.parquet" class="download-button" download>
                         <span>well_operator_history.parquet</span>
                         <span class="download-icon">⬇</span>
                     </a>
-                    <a href="argentina/well_events.parquet" class="download-button" download>
+                    <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/well_events.parquet" class="download-button" download>
                         <span>well_events.parquet</span>
                         <span class="download-icon">⬇</span>
                     </a>
@@ -2082,7 +2086,7 @@ multi_well = con.<span class="function">execute</span>(<span class="string">"""
                     <span style="font-weight: normal; color: var(--text-secondary); font-size: 0.9em;">(hive-partitioned by year)</span>
                 </h3>
                 <div class="download-grid" style="margin-bottom: 12px;">
-                    <a href="argentina/monthly_production/_files.json" class="download-button">
+                    <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/monthly_production/_files.json" class="download-button">
                         <span>_files.json &nbsp;·&nbsp; manifest for read_parquet / httpfs</span>
                         <span class="download-icon">{}</span>
                     </a>
@@ -2092,83 +2096,83 @@ multi_well = con.<span class="function">execute</span>(<span class="string">"""
                         Download a specific year
                     </summary>
                     <div class="download-grid" style="grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-top: 12px; margin-bottom: 0;">
-                        <a href="argentina/monthly_production/anio=2006/data.parquet" download="monthly_production_2006.parquet" class="download-button">
+                        <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/monthly_production/anio=2006/data.parquet" download="monthly_production_2006.parquet" class="download-button">
                             <span>2006</span>
                             <span class="download-icon">⬇</span>
                         </a>
-                        <a href="argentina/monthly_production/anio=2007/data.parquet" download="monthly_production_2007.parquet" class="download-button">
+                        <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/monthly_production/anio=2007/data.parquet" download="monthly_production_2007.parquet" class="download-button">
                             <span>2007</span>
                             <span class="download-icon">⬇</span>
                         </a>
-                        <a href="argentina/monthly_production/anio=2008/data.parquet" download="monthly_production_2008.parquet" class="download-button">
+                        <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/monthly_production/anio=2008/data.parquet" download="monthly_production_2008.parquet" class="download-button">
                             <span>2008</span>
                             <span class="download-icon">⬇</span>
                         </a>
-                        <a href="argentina/monthly_production/anio=2009/data.parquet" download="monthly_production_2009.parquet" class="download-button">
+                        <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/monthly_production/anio=2009/data.parquet" download="monthly_production_2009.parquet" class="download-button">
                             <span>2009</span>
                             <span class="download-icon">⬇</span>
                         </a>
-                        <a href="argentina/monthly_production/anio=2010/data.parquet" download="monthly_production_2010.parquet" class="download-button">
+                        <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/monthly_production/anio=2010/data.parquet" download="monthly_production_2010.parquet" class="download-button">
                             <span>2010</span>
                             <span class="download-icon">⬇</span>
                         </a>
-                        <a href="argentina/monthly_production/anio=2011/data.parquet" download="monthly_production_2011.parquet" class="download-button">
+                        <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/monthly_production/anio=2011/data.parquet" download="monthly_production_2011.parquet" class="download-button">
                             <span>2011</span>
                             <span class="download-icon">⬇</span>
                         </a>
-                        <a href="argentina/monthly_production/anio=2012/data.parquet" download="monthly_production_2012.parquet" class="download-button">
+                        <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/monthly_production/anio=2012/data.parquet" download="monthly_production_2012.parquet" class="download-button">
                             <span>2012</span>
                             <span class="download-icon">⬇</span>
                         </a>
-                        <a href="argentina/monthly_production/anio=2013/data.parquet" download="monthly_production_2013.parquet" class="download-button">
+                        <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/monthly_production/anio=2013/data.parquet" download="monthly_production_2013.parquet" class="download-button">
                             <span>2013</span>
                             <span class="download-icon">⬇</span>
                         </a>
-                        <a href="argentina/monthly_production/anio=2014/data.parquet" download="monthly_production_2014.parquet" class="download-button">
+                        <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/monthly_production/anio=2014/data.parquet" download="monthly_production_2014.parquet" class="download-button">
                             <span>2014</span>
                             <span class="download-icon">⬇</span>
                         </a>
-                        <a href="argentina/monthly_production/anio=2015/data.parquet" download="monthly_production_2015.parquet" class="download-button">
+                        <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/monthly_production/anio=2015/data.parquet" download="monthly_production_2015.parquet" class="download-button">
                             <span>2015</span>
                             <span class="download-icon">⬇</span>
                         </a>
-                        <a href="argentina/monthly_production/anio=2016/data.parquet" download="monthly_production_2016.parquet" class="download-button">
+                        <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/monthly_production/anio=2016/data.parquet" download="monthly_production_2016.parquet" class="download-button">
                             <span>2016</span>
                             <span class="download-icon">⬇</span>
                         </a>
-                        <a href="argentina/monthly_production/anio=2017/data.parquet" download="monthly_production_2017.parquet" class="download-button">
+                        <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/monthly_production/anio=2017/data.parquet" download="monthly_production_2017.parquet" class="download-button">
                             <span>2017</span>
                             <span class="download-icon">⬇</span>
                         </a>
-                        <a href="argentina/monthly_production/anio=2018/data.parquet" download="monthly_production_2018.parquet" class="download-button">
+                        <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/monthly_production/anio=2018/data.parquet" download="monthly_production_2018.parquet" class="download-button">
                             <span>2018</span>
                             <span class="download-icon">⬇</span>
                         </a>
-                        <a href="argentina/monthly_production/anio=2019/data.parquet" download="monthly_production_2019.parquet" class="download-button">
+                        <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/monthly_production/anio=2019/data.parquet" download="monthly_production_2019.parquet" class="download-button">
                             <span>2019</span>
                             <span class="download-icon">⬇</span>
                         </a>
-                        <a href="argentina/monthly_production/anio=2020/data.parquet" download="monthly_production_2020.parquet" class="download-button">
+                        <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/monthly_production/anio=2020/data.parquet" download="monthly_production_2020.parquet" class="download-button">
                             <span>2020</span>
                             <span class="download-icon">⬇</span>
                         </a>
-                        <a href="argentina/monthly_production/anio=2021/data.parquet" download="monthly_production_2021.parquet" class="download-button">
+                        <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/monthly_production/anio=2021/data.parquet" download="monthly_production_2021.parquet" class="download-button">
                             <span>2021</span>
                             <span class="download-icon">⬇</span>
                         </a>
-                        <a href="argentina/monthly_production/anio=2022/data.parquet" download="monthly_production_2022.parquet" class="download-button">
+                        <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/monthly_production/anio=2022/data.parquet" download="monthly_production_2022.parquet" class="download-button">
                             <span>2022</span>
                             <span class="download-icon">⬇</span>
                         </a>
-                        <a href="argentina/monthly_production/anio=2023/data.parquet" download="monthly_production_2023.parquet" class="download-button">
+                        <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/monthly_production/anio=2023/data.parquet" download="monthly_production_2023.parquet" class="download-button">
                             <span>2023</span>
                             <span class="download-icon">⬇</span>
                         </a>
-                        <a href="argentina/monthly_production/anio=2024/data.parquet" download="monthly_production_2024.parquet" class="download-button">
+                        <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/monthly_production/anio=2024/data.parquet" download="monthly_production_2024.parquet" class="download-button">
                             <span>2024</span>
                             <span class="download-icon">⬇</span>
                         </a>
-                        <a href="argentina/monthly_production/anio=2025/data.parquet" download="monthly_production_2025.parquet" class="download-button">
+                        <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/monthly_production/anio=2025/data.parquet" download="monthly_production_2025.parquet" class="download-button">
                             <span>2025</span>
                             <span class="download-icon">⬇</span>
                         </a>
@@ -2219,7 +2223,9 @@ multi_well = con.<span class="function">execute</span>(<span class="string">"""
                 <h2>Quick Start with DuckDB</h2>
                 <p>
                     Aggregate 2023 production by basin, joining the static well master
-                    to the hive-partitioned monthly series:
+                    to the hive-partitioned monthly series. The static host serves no
+                    directory listing, so the partition files are discovered from the
+                    <code>_files.json</code> manifest rather than globbed (ADR-0004):
                 </p>
                 <div class="code-block">
                     <div class="code-header">
@@ -2227,22 +2233,23 @@ multi_well = con.<span class="function">execute</span>(<span class="string">"""
                         <span class="code-dot"></span>
                         <span class="code-dot"></span>
                     </div>
-                    <pre><span class="keyword">import</span> duckdb
+                    <pre><span class="keyword">import</span> json, urllib.request, duckdb
 
-<span class="comment"># Aggregate 2023 production by basin</span>
-result = duckdb.<span class="function">sql</span>(<span class="string">"""
+<span class="comment"># Discover the 2023 partition from the manifest, then aggregate by basin</span>
+base = <span class="string">'https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/monthly_production/'</span>
+manifest = json.<span class="function">load</span>(urllib.request.<span class="function">urlopen</span>(base + <span class="string">'_files.json'</span>))
+urls = [base + p <span class="keyword">for</span> p <span class="keyword">in</span> manifest <span class="keyword">if</span> p.<span class="function">startswith</span>(<span class="string">'anio=2023/'</span>)]
+
+result = duckdb.<span class="function">sql</span>(<span class="function">f</span><span class="string">"""
     SELECT w.cuenca,
            SUM(m.prod_pet) AS oil_m3,
            SUM(m.prod_gas) AS gas_mm3
-    FROM 'argentina/wells.parquet' w
-    JOIN read_parquet(
-      'argentina/monthly_production/anio=*/data.parquet',
-      hive_partitioning = true
-    ) m USING (idpozo)
+    FROM 'https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/argentina/wells.parquet' w
+    JOIN read_parquet(?, hive_partitioning = true) m USING (idpozo)
     WHERE m.anio = 2023
     GROUP BY w.cuenca
     ORDER BY oil_m3 DESC
-"""</span>).<span class="function">df</span>()</pre>
+"""</span>, params=[urls]).<span class="function">df</span>()</pre>
                 </div>
                 <p>
                     Three more canonical patterns (single-well lookup, year-range
@@ -2322,19 +2329,19 @@ result = duckdb.<span class="function">sql</span>(<span class="string">"""
                     hive-partitioned by <code>event_class</code>.
                 </p>
                 <div class="download-grid">
-                    <a href="petrobras_3w/event_types.parquet" class="download-button" download>
+                    <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/petrobras_3w/event_types.parquet" class="download-button" download>
                         <span>event_types.parquet</span>
                         <span class="download-icon">⬇</span>
                     </a>
-                    <a href="petrobras_3w/wells.parquet" class="download-button" download>
+                    <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/petrobras_3w/wells.parquet" class="download-button" download>
                         <span>wells.parquet</span>
                         <span class="download-icon">⬇</span>
                     </a>
-                    <a href="petrobras_3w/instances.parquet" class="download-button" download>
+                    <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/petrobras_3w/instances.parquet" class="download-button" download>
                         <span>instances.parquet</span>
                         <span class="download-icon">⬇</span>
                     </a>
-                    <a href="petrobras_3w/observations/_files.json" class="download-button">
+                    <a href="https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/petrobras_3w/observations/_files.json" class="download-button">
                         <span>observations/_files.json</span>
                         <span class="download-icon">📜</span>
                     </a>
@@ -2364,21 +2371,6 @@ result = duckdb.<span class="function">sql</span>(<span class="string">"""
                 </div>
                 <p class="file-size">Lookup + Wells master + Instance catalog + per-Instance Observations (hive-partitioned by event_class) · pinned upstream identity logged on every publish</p>
             </div>
-
-            <!-- Observations Explorer Section -->
-            <section>
-                <h2>Browse Observations</h2>
-                <p>
-                    The Observations time-series ships as one parquet file per Instance,
-                    hive-partitioned across the ten <code>event_class</code> regimes
-                    (<code>0 = NORMAL</code>, <code>1..9 = </code>anomaly categories).
-                    Expand a regime to browse and download its individual Instance files
-                    (<code>observations/event_class=N/&lt;instance_id&gt;.parquet</code>),
-                    or filter by Instance id to jump straight to a window.
-                </p>
-                <div class="obs-status" id="obs-status">Loading observation manifest…</div>
-                <div class="obs-accordion" id="obs-accordion" hidden></div>
-            </section>
 
             <!-- About Section -->
             <section>
@@ -2416,7 +2408,7 @@ result = duckdb.<span class="function">sql</span>(<span class="string">"""
                     </div>
                     <pre><span class="keyword">import</span> duckdb
 
-base = <span class="string">'https://dev-petrodb.ocortez.com/petrobras_3w'</span>
+base = <span class="string">'https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/petrobras_3w'</span>
 result = duckdb.<span class="function">sql</span>(<span class="function">f</span><span class="string">"""
     SELECT
         et.event_class,
@@ -2431,13 +2423,16 @@ result = duckdb.<span class="function">sql</span>(<span class="function">f</span
 """</span>).<span class="function">df</span>()</pre>
                 </div>
                 <p>
-                    The per-Instance Observations files are accessible via the
-                    hive-partitioned URL pattern
+                    The per-Instance Observations files live under the
+                    hive-partitioned path
                     <code>observations/event_class=N/&lt;instance_id&gt;.parquet</code>.
-                    Each file embeds <code>instance_id</code>, <code>well_id</code>,
-                    and <code>well_kind</code> as constant columns, so corpus-wide
-                    queries against a single event class do not need to join the
-                    catalog:
+                    The static host serves no directory listing, so discover the
+                    files from <code>observations/_files.json</code> and filter by
+                    the <code>event_class=8/</code> prefix (ADR-0004) rather than
+                    globbing. Each file embeds <code>instance_id</code>,
+                    <code>well_id</code>, and <code>well_kind</code> as constant
+                    columns, so corpus-wide queries against a single event class
+                    do not need to join the catalog:
                 </p>
                 <div class="code-block">
                     <div class="code-header">
@@ -2445,10 +2440,19 @@ result = duckdb.<span class="function">sql</span>(<span class="function">f</span
                         <span class="code-dot"></span>
                         <span class="code-dot"></span>
                     </div>
-                    <pre><span class="comment">-- All real-Well Hydrate-in-Production-Line observations</span>
-SELECT instance_id, well_id, <span class="string">"timestamp"</span>, <span class="string">"P-PDG"</span>, <span class="string">"T-PDG"</span>, class
-FROM <span class="string">'https://dev-petrodb.ocortez.com/petrobras_3w/observations/event_class=8/*.parquet'</span>
-WHERE well_kind = <span class="string">'real'</span>;</pre>
+                    <pre><span class="keyword">import</span> json, urllib.request, duckdb
+
+<span class="comment"># All real-Well Hydrate-in-Production-Line (event_class=8) observations</span>
+base = <span class="string">'https://huggingface.co/datasets/sumpalabs/petrodb/resolve/main/petrobras_3w/observations/'</span>
+manifest = json.<span class="function">load</span>(urllib.request.<span class="function">urlopen</span>(base + <span class="string">'_files.json'</span>))
+urls = [base + p <span class="keyword">for</span> p <span class="keyword">in</span> manifest <span class="keyword">if</span> p.<span class="function">startswith</span>(<span class="string">'event_class=8/'</span>)]
+
+duckdb.<span class="function">sql</span>(<span class="string">"""
+    SELECT instance_id, well_id, "timestamp", "P-PDG", "T-PDG", class
+    FROM read_parquet(?)
+    WHERE well_kind = 'real'
+    ORDER BY instance_id, "timestamp"
+"""</span>, params=[urls]).<span class="function">show</span>()</pre>
                 </div>
             </section>
 

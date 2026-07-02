@@ -24,6 +24,7 @@ constants here — the single source of truth for the documented contract.
 """
 
 import json
+import os
 from pathlib import Path
 
 import duckdb
@@ -462,15 +463,45 @@ def _write_schema_md(schemas: dict[str, dict], path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _manifest_urls(base_url: str, filt: str | None = None) -> list[str]:
+    """Python lines resolving the `monthly_production` partition URLs.
+
+    The static host (HF, per ADR-0005) serves no directory index, so DuckDB
+    cannot glob `anio=*/data.parquet`. Per ADR-0004 the file list is read from
+    the `_files.json` manifest — the discovery contract — and passed to
+    `read_parquet(?)` as an explicit list; `hive_partitioning = true` recovers
+    the `anio` column from each path. `filt` optionally narrows the partitions
+    client-side (a Python boolean expression over the manifest entry `p`).
+    """
+    lines = [
+        "import json, urllib.request, duckdb",
+        "",
+        f"base = '{base_url}/monthly_production/'",
+        "manifest = json.load(urllib.request.urlopen(base + '_files.json'))",
+    ]
+    if filt:
+        lines.append(f"urls = [base + p for p in manifest if {filt}]")
+    else:
+        lines.append("urls = [base + p for p in manifest]")
+    return lines
+
+
 def _write_readme(schemas: dict[str, dict], path: Path) -> None:
     """Dataset overview + the four canonical DuckDB query examples.
 
-    Examples cover: single-well lookup (row-group pruning), year-range
-    across hive partitions, basin aggregate joining `wells` to
-    `monthly_production`, and manifest/`generate_series` URL-template
-    access against `_files.json`.
+    Examples cover: single-well lookup (row-group pruning), year-range across
+    hive partitions, basin aggregate joining `wells` to `monthly_production`,
+    and a corpus-wide read. Every multi-partition read discovers files from the
+    `_files.json` manifest (ADR-0004) — never a `.../*.parquet` glob — so the
+    examples work against the static Hugging Face host (ADR-0005).
     """
-    base_url = "https://dev-petrodb.ocortez.com/argentina"
+    # `BASE_URL` is the HF resolve base in CI (ADR-0005); local runs fall
+    # through to the dev Caddy host. `/argentina` matches this dataset's
+    # directory under `parquet/`.
+    base_url = (
+        os.environ.get("BASE_URL", "https://dev-petrodb.ocortez.com").rstrip("/")
+        + "/argentina"
+    )
     lines: list[str] = []
     lines.append("# Argentina Production Dataset")
     lines.append("")
@@ -528,6 +559,14 @@ def _write_readme(schemas: dict[str, dict], path: Path) -> None:
     lines.append("INSTALL httpfs; LOAD httpfs;")
     lines.append("```")
     lines.append("")
+    lines.append(
+        "`monthly_production` is a multi-parquet table; discover its partition "
+        "files from the `_files.json` manifest (ADR-0004) and hand DuckDB the "
+        "explicit URL list — the static host serves no directory listing, so "
+        "wildcard globbing over the partitions does not resolve. "
+        "`hive_partitioning = true` recovers the `anio` column from each path."
+    )
+    lines.append("")
     lines.append("### 1. Single well by `idpozo`")
     lines.append("")
     lines.append(
@@ -536,95 +575,83 @@ def _write_readme(schemas: dict[str, dict], path: Path) -> None:
         "requested well: the query downloads minimal byte ranges."
     )
     lines.append("")
-    lines.append("```sql")
-    lines.append("SELECT idpozo, fecha, prod_pet, prod_gas")
-    lines.append(f"FROM '{base_url}/monthly_production/anio=*/data.parquet'")
-    lines.append("WHERE idpozo = 12345")
-    lines.append("ORDER BY fecha;")
+    lines.append("```python")
+    lines.extend(_manifest_urls(base_url))
+    lines.append("")
+    lines.append('duckdb.sql("""')
+    lines.append("    SELECT idpozo, fecha, prod_pet, prod_gas")
+    lines.append("    FROM read_parquet(?, hive_partitioning = true)")
+    lines.append("    WHERE idpozo = 12345")
+    lines.append("    ORDER BY fecha")
+    lines.append('""", params=[urls]).show()')
     lines.append("```")
     lines.append("")
     lines.append("### 2. Year range")
     lines.append("")
     lines.append(
-        "Hive partitioning on `anio` lets DuckDB prune partitions outside "
-        "the requested range. Enable `hive_partitioning` so the `anio` "
-        "column is derived from the path."
+        "Narrow the manifest to the requested years client-side so only those "
+        "partition files are fetched; `hive_partitioning` still derives `anio` "
+        "from the path for the `WHERE` filter."
     )
     lines.append("")
-    lines.append("```sql")
-    lines.append("SELECT anio, COUNT(*) AS rows, SUM(prod_pet) AS prod_pet_total")
-    lines.append("FROM read_parquet(")
-    lines.append(f"  '{base_url}/monthly_production/anio=*/data.parquet',")
-    lines.append("  hive_partitioning = true")
-    lines.append(")")
-    lines.append("WHERE anio BETWEEN 2018 AND 2022")
-    lines.append("GROUP BY anio")
-    lines.append("ORDER BY anio;")
+    lines.append("```python")
+    lines.extend(
+        _manifest_urls(base_url, filt="2018 <= int(p.split('=')[1][:4]) <= 2022")
+    )
+    lines.append("")
+    lines.append('duckdb.sql("""')
+    lines.append("    SELECT anio, COUNT(*) AS rows, SUM(prod_pet) AS prod_pet_total")
+    lines.append("    FROM read_parquet(?, hive_partitioning = true)")
+    lines.append("    WHERE anio BETWEEN 2018 AND 2022")
+    lines.append("    GROUP BY anio")
+    lines.append("    ORDER BY anio")
+    lines.append('""", params=[urls]).show()')
     lines.append("```")
     lines.append("")
     lines.append("### 3. Aggregate by basin (join `wells` ↔ `monthly_production`)")
     lines.append("")
     lines.append(
-        "The `wells` master table is loaded once (it is small); "
-        "`monthly_production` is reduced by `anio` before the join."
-    )
-    lines.append("")
-    lines.append("```sql")
-    lines.append("SELECT w.cuenca,")
-    lines.append("       SUM(m.prod_pet) AS prod_pet_total,")
-    lines.append("       SUM(m.prod_gas) AS prod_gas_total")
-    lines.append(f"FROM '{base_url}/wells.parquet' w")
-    lines.append("JOIN read_parquet(")
-    lines.append(f"  '{base_url}/monthly_production/anio=*/data.parquet',")
-    lines.append("  hive_partitioning = true")
-    lines.append(") m USING (idpozo)")
-    lines.append("WHERE m.anio = 2023")
-    lines.append("GROUP BY w.cuenca")
-    lines.append("ORDER BY prod_pet_total DESC;")
-    lines.append("```")
-    lines.append("")
-    lines.append("### 4. Manifest + `generate_series`")
-    lines.append("")
-    lines.append(
-        "The `_files.json` manifest lists the relative URL of every "
-        "partition. If you prefer to avoid the wildcard pattern (which "
-        "requires a LIST), build the URLs with `generate_series` and read "
-        "them via a VALUES list — handy when the front edge caches by "
-        "exact URL."
-    )
-    lines.append("")
-    lines.append("```sql")
-    lines.append("WITH urls AS (")
-    lines.append("  SELECT")
-    lines.append(
-        f"    '{base_url}/monthly_production/anio=' || y || '/data.parquet' AS url"
-    )
-    lines.append("  FROM generate_series(2006, 2025) AS t(y)")
-    lines.append(")")
-    lines.append("SELECT m.idpozo, m.fecha, m.prod_pet")
-    lines.append(
-        "FROM read_parquet((SELECT LIST(url) FROM urls), hive_partitioning = true) m"
-    )
-    lines.append("WHERE m.idpozo = 12345")
-    lines.append("ORDER BY m.fecha;")
-    lines.append("```")
-    lines.append("")
-    lines.append(
-        "Alternatively, read the manifest and build the URL list from the "
-        "client application:"
+        "The `wells` master is a single file, read directly; "
+        "`monthly_production` is reduced to the year of interest by narrowing "
+        "the manifest to that partition before the join."
     )
     lines.append("")
     lines.append("```python")
-    lines.append("import json, urllib.request, duckdb")
+    lines.extend(_manifest_urls(base_url, filt="p.startswith('anio=2023/')"))
+    lines.append("")
+    lines.append('duckdb.sql(f"""')
+    lines.append("    SELECT w.cuenca,")
+    lines.append("           SUM(m.prod_pet) AS prod_pet_total,")
+    lines.append("           SUM(m.prod_gas) AS prod_gas_total")
+    lines.append(f"    FROM '{base_url}/wells.parquet' w")
+    lines.append("    JOIN read_parquet(?, hive_partitioning = true) m USING (idpozo)")
+    lines.append("    WHERE m.anio = 2023")
+    lines.append("    GROUP BY w.cuenca")
+    lines.append("    ORDER BY prod_pet_total DESC")
+    lines.append('""", params=[urls]).show()')
+    lines.append("```")
+    lines.append("")
+    lines.append("### 4. Read the whole series (the manifest is the contract)")
+    lines.append("")
     lines.append(
-        f"manifest = json.load(urllib.request.urlopen("
-        f"'{base_url}/monthly_production/_files.json'))"
+        "`_files.json` lists every partition's path relative to "
+        "`monthly_production/`; it is the file-discovery contract (ADR-0004) "
+        "and the only supported way to enumerate the table over static "
+        "hosting. Read them all for a corpus-wide aggregate:"
     )
-    lines.append(f"urls = [f'{base_url}/monthly_production/' + p for p in manifest]")
+    lines.append("")
+    lines.append("```python")
+    lines.extend(_manifest_urls(base_url))
+    lines.append("")
+    lines.append('duckdb.sql("""')
     lines.append(
-        'duckdb.sql("SELECT * FROM read_parquet(?, hive_partitioning = true) "'
+        "    SELECT anio, SUM(prod_pet) AS prod_pet_total, "
+        "SUM(prod_gas) AS prod_gas_total"
     )
-    lines.append('           "WHERE idpozo = 12345", params=[urls]).show()')
+    lines.append("    FROM read_parquet(?, hive_partitioning = true)")
+    lines.append("    GROUP BY anio")
+    lines.append("    ORDER BY anio")
+    lines.append('""", params=[urls]).show()')
     lines.append("```")
     lines.append("")
     lines.append("## Full schema")
