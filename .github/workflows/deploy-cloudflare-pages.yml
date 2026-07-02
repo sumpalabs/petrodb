@@ -29,9 +29,12 @@ on:
     branches: [main, stage]
     paths:
       - 'parquet/**'
+      - 'README.md'
+      - 'hf/README.md'
       - 'scripts/transform/petrobras_3w/**'
       - 'scripts/export/petrobras_3w/**'
       - 'scripts/run_pipeline/petrobras_3w/**'
+      - 'scripts/deploy/**'
       - '.github/workflows/deploy-cloudflare-pages.yml'
   workflow_dispatch:
 
@@ -87,6 +90,19 @@ jobs:
       - name: Build Petrobras 3W parquet tree
         if: steps.cache-3w.outputs.cache-hit != 'true'
         run: uv run python -m scripts.run_pipeline.petrobras_3w
+
+      # Retarget every published data URL — the hand-authored Volve/FORCE tabs
+      # and Argentina/3W integrator blocks in index.html, the per-dataset schema
+      # READMEs, the root README quick-start, and the HF dataset card — to this
+      # deploy's per-branch BASE_URL, so a `stage` push ships `…/resolve/stage/…`
+      # and a `main` push ships `…/resolve/main/…` (issue #42, ADR-0005). Runs on
+      # both the cache-hit and cache-miss paths (the 3W tree is populated either
+      # way) and covers the surfaces the 3W run-pipeline does not. Pure stdlib,
+      # so it uses the runner's system Python and needs neither uv nor the
+      # dataset sources. Committed tree stays canonical `main`; this rewrites
+      # only the ephemeral CI checkout, never git.
+      - name: Retarget published data URLs to the deploy branch
+        run: python3 -m scripts.deploy.retarget_data_urls
 
       # --- Hugging Face: publish the parquet bytes (ADR-0005) -----------------
       # Runs regardless of the 3W cache outcome — on a cache hit the generated
@@ -156,6 +172,21 @@ jobs:
             parquet/ _site/petrodb/
           echo "Staged tree:"
           find _site -type f | sort
+
+      # Belt-and-suspenders acceptance guard (issue #42): every data URL in the
+      # about-to-ship tree must be this deploy's own branch. Fail if the staged
+      # landing/docs or the HF dataset card still name the dev Caddy host or the
+      # *other* branch's resolve base. Catches any surface the retarget pass
+      # missed (e.g. a schema.* file that later gains a data URL).
+      - name: Verify no off-branch data host in the built output
+        env:
+          OTHER_BASE: ${{ github.ref_name == 'main' && vars.BASE_URL_STAGE || vars.BASE_URL_MAIN }}
+        run: |
+          if grep -rn -e 'dev-petrodb\.ocortez\.com' -e "$OTHER_BASE" _site hf/README.md; then
+            echo "::error::off-branch data host found in built output (expected only $BASE_URL)"
+            exit 1
+          fi
+          echo "OK: all data URLs target $BASE_URL"
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
